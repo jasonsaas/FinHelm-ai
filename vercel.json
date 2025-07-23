@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.9"
+      }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
+    }
+  ],
+  "env": {
+    "QBO_CLIENT_ID": "@qbo_client_id",
+    "QBO_CLIENT_SECRET": "@qbo_client_secret",
+    "GROK_API_KEY": "@grok_api_key",
+    "SECRET_KEY": "@secret_key"
+  },
+  "functions": {
+    "backend/main.py": {
+      "maxDuration": 30
+    }
+  }
+}
