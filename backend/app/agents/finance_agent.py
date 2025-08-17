@@ -48,8 +48,13 @@ class FinanceAgent:
                 for data_type, data in financial_data.items():
                     self.rag_service.add_financial_data(user_id, data, data_type)
             
-            # Search for relevant context using RAG
-            relevant_context = self.rag_service.search_relevant_context(query, user_id) if user_id else []
+            # Use enhanced RAG workflow for better context retrieval
+            if user_id:
+                rag_context = self.rag_service.enhanced_search_with_workflow(query, user_id)
+                relevant_context = rag_context.get('fallback_results', [])
+            else:
+                rag_context = None
+                relevant_context = []
             
             # Generate charts for visualization
             charts = self._generate_charts(financial_data, data_requirements)
@@ -57,8 +62,10 @@ class FinanceAgent:
             # Format data context for Claude analysis
             data_context = self._format_financial_context(financial_data, relevant_context)
             
-            # Get AI analysis from Claude
-            claude_response = self.claude_service.analyze_financial_data(data_context, query)
+            # Get enhanced AI analysis from Claude with RAG context
+            claude_response = self.claude_service.enhanced_financial_analysis(
+                data_context, query, rag_context
+            )
             
             # Calculate key financial metrics
             metrics = self._calculate_key_metrics(financial_data)
@@ -71,15 +78,23 @@ class FinanceAgent:
                 "data_sources": list(financial_data.keys())
             })
             
-            # Extract structured response if available
+            # Extract enhanced structured response
             if isinstance(claude_response, dict):
                 response_text = claude_response.get("analysis", "")
                 recommendations = claude_response.get("recommendations", [])
                 key_insights = claude_response.get("key_insights", [])
+                financial_metrics = claude_response.get("financial_metrics", {})
+                risk_factors = claude_response.get("risk_factors", [])
+                reasoning_process = claude_response.get("reasoning_process", [])
+                confidence_level = claude_response.get("confidence_level", 0.7)
             else:
-                response_text = claude_response
+                response_text = str(claude_response)
                 recommendations = self._extract_recommendations(claude_response)
                 key_insights = []
+                financial_metrics = {}
+                risk_factors = []
+                reasoning_process = []
+                confidence_level = 0.6
             
             return {
                 "response": response_text,
@@ -88,11 +103,16 @@ class FinanceAgent:
                 "insights": {
                     "metrics": metrics,
                     "key_insights": key_insights,
+                    "financial_metrics": financial_metrics,
                     "data_sources": list(financial_data.keys()),
-                    "analysis_type": "claude_financial_analysis",
-                    "rag_context_used": len(relevant_context) > 0
+                    "analysis_type": "enhanced_claude_financial_analysis",
+                    "rag_context_used": rag_context is not None,
+                    "rag_enhanced": rag_context.get('enhanced', False) if rag_context else False,
+                    "confidence_level": confidence_level,
+                    "reasoning_process": reasoning_process
                 },
-                "recommendations": recommendations
+                "recommendations": recommendations,
+                "risk_factors": risk_factors
             }
             
         except Exception as e:

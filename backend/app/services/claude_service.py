@@ -3,18 +3,24 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
+from langchain_core.tools import tool
+from langgraph.graph import StateGraph, END
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
 class ClaudeService:
-    """Service for interacting with Anthropic's Claude API"""
+    """Enhanced service for interacting with Anthropic's Claude API with agentic capabilities"""
     
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         self.model = settings.claude_model
         self.max_tokens = settings.claude_max_tokens
         self.temperature = settings.claude_temperature
+        
+        # Initialize agentic tools
+        self.analysis_tools = self._create_analysis_tools()
+        self.forecasting_tools = self._create_forecasting_tools()
     
     def chat_completion(self, messages: List[Dict[str, str]], 
                        system_prompt: str = "",
@@ -390,3 +396,291 @@ class ClaudeService:
                 "error": str(e),
                 "timestamp": datetime.now().isoformat()
             }
+    
+    def _create_analysis_tools(self) -> List:
+        """Create tools for financial analysis"""
+        
+        @tool
+        def calculate_financial_ratios(financial_data: Dict[str, Any]) -> Dict[str, float]:
+            """Calculate key financial ratios from provided data"""
+            try:
+                # Extract key figures
+                total_assets = financial_data.get('total_assets', 0)
+                total_liabilities = financial_data.get('total_liabilities', 0)
+                total_revenue = financial_data.get('total_revenue', 0)
+                net_income = financial_data.get('net_income', 0)
+                total_expenses = financial_data.get('total_expenses', 0)
+                
+                ratios = {}
+                
+                # Debt-to-Asset Ratio
+                if total_assets > 0:
+                    ratios['debt_to_assets'] = total_liabilities / total_assets
+                
+                # Net Profit Margin
+                if total_revenue > 0:
+                    ratios['net_profit_margin'] = net_income / total_revenue
+                
+                # Expense Ratio
+                if total_revenue > 0:
+                    ratios['expense_ratio'] = total_expenses / total_revenue
+                
+                # Asset Turnover (simplified)
+                if total_assets > 0:
+                    ratios['asset_efficiency'] = total_revenue / total_assets
+                
+                return ratios
+                
+            except Exception as e:
+                logger.error(f"Error calculating ratios: {e}")
+                return {}
+        
+        @tool
+        def identify_trends(time_series_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+            """Identify trends in time series financial data"""
+            try:
+                if len(time_series_data) < 2:
+                    return {"trend": "insufficient_data"}
+                
+                # Simple trend analysis
+                values = [item.get('value', 0) for item in time_series_data]
+                periods = len(values)
+                
+                # Calculate growth rate
+                if periods >= 2 and values[0] != 0:
+                    growth_rate = ((values[-1] - values[0]) / values[0]) * 100
+                else:
+                    growth_rate = 0
+                
+                # Determine trend direction
+                if growth_rate > 10:
+                    trend = "strong_growth"
+                elif growth_rate > 0:
+                    trend = "growth"
+                elif growth_rate > -10:
+                    trend = "decline"
+                else:
+                    trend = "strong_decline"
+                
+                # Calculate volatility (standard deviation)
+                if periods > 1:
+                    mean_val = sum(values) / periods
+                    variance = sum((x - mean_val) ** 2 for x in values) / periods
+                    volatility = variance ** 0.5
+                else:
+                    volatility = 0
+                
+                return {
+                    "trend": trend,
+                    "growth_rate": round(growth_rate, 2),
+                    "volatility": round(volatility, 2),
+                    "periods_analyzed": periods,
+                    "recent_value": values[-1] if values else 0
+                }
+                
+            except Exception as e:
+                logger.error(f"Error identifying trends: {e}")
+                return {"trend": "analysis_error"}
+        
+        return [calculate_financial_ratios, identify_trends]
+    
+    def _create_forecasting_tools(self) -> List:
+        """Create tools for financial forecasting"""
+        
+        @tool
+        def simple_linear_forecast(historical_values: List[float], periods: int = 12) -> List[Dict[str, Any]]:
+            """Generate simple linear forecast based on historical values"""
+            try:
+                if len(historical_values) < 2:
+                    return []
+                
+                # Calculate linear trend
+                n = len(historical_values)
+                x_vals = list(range(n))
+                y_vals = historical_values
+                
+                # Simple linear regression
+                x_mean = sum(x_vals) / n
+                y_mean = sum(y_vals) / n
+                
+                numerator = sum((x_vals[i] - x_mean) * (y_vals[i] - y_mean) for i in range(n))
+                denominator = sum((x_vals[i] - x_mean) ** 2 for i in range(n))
+                
+                if denominator != 0:
+                    slope = numerator / denominator
+                    intercept = y_mean - slope * x_mean
+                else:
+                    slope = 0
+                    intercept = y_mean
+                
+                # Generate forecasts
+                forecasts = []
+                for i in range(periods):
+                    future_x = n + i
+                    forecast_value = slope * future_x + intercept
+                    
+                    # Add some uncertainty bounds (simplified)
+                    uncertainty = abs(forecast_value) * 0.1  # 10% uncertainty
+                    
+                    forecasts.append({
+                        "period": i + 1,
+                        "forecast_value": max(0, forecast_value),  # No negative values
+                        "lower_bound": max(0, forecast_value - uncertainty),
+                        "upper_bound": forecast_value + uncertainty,
+                        "confidence": max(0.3, 1.0 - (i * 0.05))  # Decreasing confidence
+                    })
+                
+                return forecasts
+                
+            except Exception as e:
+                logger.error(f"Error generating forecast: {e}")
+                return []
+        
+        @tool
+        def analyze_forecast_accuracy(actual_values: List[float], forecasted_values: List[float]) -> Dict[str, Any]:
+            """Analyze the accuracy of previous forecasts"""
+            try:
+                if len(actual_values) != len(forecasted_values) or len(actual_values) == 0:
+                    return {"accuracy": "insufficient_data"}
+                
+                # Calculate MAPE (Mean Absolute Percentage Error)
+                mape_sum = 0
+                valid_points = 0
+                
+                for i in range(len(actual_values)):
+                    actual = actual_values[i]
+                    forecast = forecasted_values[i]
+                    
+                    if actual != 0:
+                        mape_sum += abs((actual - forecast) / actual)
+                        valid_points += 1
+                
+                if valid_points > 0:
+                    mape = (mape_sum / valid_points) * 100
+                    accuracy = max(0, 100 - mape)
+                else:
+                    accuracy = 0
+                
+                # Calculate MSE (Mean Squared Error)
+                mse = sum((actual_values[i] - forecasted_values[i]) ** 2 for i in range(len(actual_values))) / len(actual_values)
+                
+                return {
+                    "accuracy_percentage": round(accuracy, 2),
+                    "mape": round(mape, 2) if valid_points > 0 else 0,
+                    "mse": round(mse, 2),
+                    "data_points": len(actual_values),
+                    "forecast_quality": "high" if accuracy > 80 else "medium" if accuracy > 60 else "low"
+                }
+                
+            except Exception as e:
+                logger.error(f"Error analyzing forecast accuracy: {e}")
+                return {"accuracy": "analysis_error"}
+        
+        return [simple_linear_forecast, analyze_forecast_accuracy]
+    
+    def enhanced_financial_analysis(self, data_context: str, user_query: str, 
+                                   rag_context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Enhanced financial analysis using agentic tools and RAG context"""
+        try:
+            # Prepare enhanced system prompt with RAG context
+            rag_info = ""
+            if rag_context and rag_context.get("enhanced"):
+                context_data = rag_context.get("context", {})
+                rag_info = f"""
+                
+                ENHANCED RAG CONTEXT:
+                - Context Quality: {context_data.get('context_quality', 'unknown')}
+                - Data Types Available: {', '.join(context_data.get('data_types', []))}
+                - Synthesized Context: {context_data.get('synthesized_context', '')}
+                - Confidence Level: {rag_context.get('confidence', 0.0):.2f}
+                """
+            
+            system_prompt = f"""You are Claude, an advanced AI financial analyst with agentic capabilities specializing in QuickBooks Online data analysis.
+            
+            Your expertise includes:
+            - Multi-step reasoning for complex financial analysis
+            - Advanced financial ratio calculations and interpretation
+            - Trend analysis and pattern recognition
+            - Forecasting with uncertainty quantification
+            - Risk assessment and mitigation strategies
+            - Actionable recommendations with prioritization
+            
+            AGENTIC WORKFLOW APPROACH:
+            1. ANALYZE: Break down the query into components
+            2. CALCULATE: Use available financial data to compute key metrics
+            3. CONTEXTUALIZE: Consider historical patterns and industry benchmarks  
+            4. FORECAST: Project future trends when relevant
+            5. RECOMMEND: Provide specific, actionable next steps
+            
+            {rag_info}
+            
+            Guidelines for responses:
+            - Use multi-step reasoning to build comprehensive analysis
+            - Quantify insights with specific numbers and percentages
+            - Identify both opportunities and risks
+            - Prioritize recommendations by impact and feasibility
+            - Explain your reasoning process transparently
+            - Acknowledge data limitations and uncertainty
+            
+            Format your response as structured JSON:
+            {{
+                "analysis": "Your detailed multi-step analysis",
+                "key_insights": ["quantified insight 1", "insight 2", ...],
+                "financial_metrics": {{
+                    "metric_name": {{"value": 123.45, "interpretation": "explanation"}}
+                }},
+                "recommendations": [
+                    {{"action": "specific action", "priority": "high/medium/low", "impact": "description"}}
+                ],
+                "risk_factors": ["risk 1", "risk 2", ...],
+                "confidence_level": 0.85,
+                "next_steps": ["immediate action 1", "action 2", ...],
+                "reasoning_process": ["step 1", "step 2", "step 3", ...]
+            }}
+            """
+            
+            messages = [
+                {"role": "user", "content": f"""
+                Financial Data Context:
+                {data_context}
+                
+                User Question: {user_query}
+                
+                Please provide a comprehensive agentic analysis that demonstrates multi-step reasoning, quantified insights, and actionable recommendations. Show your reasoning process clearly.
+                """}
+            ]
+            
+            response = self.chat_completion(messages, system_prompt, temperature=0.2)
+            
+            # Try to parse as JSON with enhanced error handling
+            try:
+                parsed_response = json.loads(response)
+                
+                # Validate required fields
+                required_fields = ['analysis', 'key_insights', 'recommendations']
+                for field in required_fields:
+                    if field not in parsed_response:
+                        parsed_response[field] = []
+                
+                # Add metadata
+                parsed_response['enhanced'] = True
+                parsed_response['rag_enhanced'] = rag_context is not None
+                
+                return parsed_response
+                
+            except json.JSONDecodeError:
+                return {
+                    "analysis": response,
+                    "key_insights": [],
+                    "recommendations": [],
+                    "financial_metrics": {},
+                    "risk_factors": [],
+                    "confidence_level": 0.7,
+                    "next_steps": [],
+                    "reasoning_process": ["Fallback response - JSON parsing failed"],
+                    "enhanced": False
+                }
+                
+        except Exception as e:
+            logger.error(f"Enhanced financial analysis failed: {e}")
+            raise

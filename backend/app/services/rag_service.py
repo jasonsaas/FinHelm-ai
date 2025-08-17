@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import numpy as np
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -10,13 +10,26 @@ from sentence_transformers import SentenceTransformer
 import faiss
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
+from langchain_core.tools import tool
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from typing_extensions import Annotated, TypedDict
 
 from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
+class AgentState(TypedDict):
+    """State for agentic workflows"""
+    query: str
+    user_id: str
+    context_data: List[Dict[str, Any]]
+    retrieved_docs: List[Dict[str, Any]]
+    analysis_result: Dict[str, Any]
+    messages: Annotated[List[Dict], add_messages]
+
 class RAGService:
-    """RAG (Retrieval-Augmented Generation) service for ERP data"""
+    """Enhanced RAG (Retrieval-Augmented Generation) service with agentic workflows"""
     
     def __init__(self):
         self.embedding_model = SentenceTransformer(settings.embedding_model)
@@ -36,6 +49,9 @@ class RAGService:
         self.document_store = {}
         self.metadata_store = {}
         self._initialize_vector_store()
+        
+        # Initialize agentic workflow
+        self.workflow = self._create_agentic_workflow()
     
     def _initialize_vector_store(self):
         """Initialize FAISS vector store"""
@@ -316,3 +332,168 @@ class RAGService:
             "data_types": list(set(doc["data_type"] for doc in self.document_store.values())),
             "storage_path": self.vector_db_path
         }
+    
+    def _create_agentic_workflow(self) -> StateGraph:
+        """Create LangGraph agentic workflow for enhanced RAG processing"""
+        
+        @tool
+        def retrieve_relevant_documents(query: str, user_id: str, top_k: int = 5) -> List[Dict[str, Any]]:
+            """Tool to retrieve relevant documents from vector store"""
+            return self.search_relevant_context(query, user_id, top_k)
+        
+        @tool
+        def analyze_context_relevance(docs: List[Dict[str, Any]], query: str) -> Dict[str, Any]:
+            """Tool to analyze and rank context relevance"""
+            if not docs:
+                return {"relevant_docs": [], "confidence": 0.0}
+            
+            # Simple relevance scoring based on semantic similarity scores
+            high_relevance = [doc for doc in docs if doc.get("score", 0) > 0.7]
+            medium_relevance = [doc for doc in docs if 0.4 <= doc.get("score", 0) <= 0.7]
+            
+            return {
+                "relevant_docs": high_relevance + medium_relevance[:3],
+                "confidence": np.mean([doc.get("score", 0) for doc in docs[:3]]) if docs else 0.0,
+                "total_docs": len(docs),
+                "high_relevance_count": len(high_relevance)
+            }
+        
+        @tool  
+        def synthesize_context(relevant_docs: List[Dict[str, Any]], query: str) -> Dict[str, Any]:
+            """Tool to synthesize context for enhanced understanding"""
+            if not relevant_docs:
+                return {"synthesized_context": "", "data_types": [], "timespan": ""}
+            
+            # Extract unique data types
+            data_types = list(set(doc.get("data_type", "unknown") for doc in relevant_docs))
+            
+            # Create synthesized context
+            context_parts = []
+            for doc in relevant_docs[:5]:  # Top 5 most relevant
+                content = doc.get("content", "")[:200] + "..."
+                score = doc.get("score", 0)
+                data_type = doc.get("data_type", "unknown")
+                context_parts.append(f"[{data_type.upper()} - Score: {score:.2f}] {content}")
+            
+            synthesized_context = "\n\n".join(context_parts)
+            
+            return {
+                "synthesized_context": synthesized_context,
+                "data_types": data_types,
+                "timespan": "last_12_months",  # Could be enhanced to detect timespan
+                "context_quality": "high" if len(relevant_docs) >= 3 else "medium"
+            }
+        
+        def retrieve_node(state: AgentState) -> AgentState:
+            """Node to retrieve relevant documents"""
+            query = state["query"]
+            user_id = state["user_id"]
+            
+            retrieved_docs = retrieve_relevant_documents(query, user_id, top_k=8)
+            state["retrieved_docs"] = retrieved_docs
+            state["messages"].append({
+                "role": "system", 
+                "content": f"Retrieved {len(retrieved_docs)} relevant documents"
+            })
+            
+            return state
+        
+        def analyze_node(state: AgentState) -> AgentState:
+            """Node to analyze context relevance"""
+            retrieved_docs = state["retrieved_docs"]
+            query = state["query"]
+            
+            analysis = analyze_context_relevance(retrieved_docs, query)
+            state["analysis_result"] = analysis
+            state["messages"].append({
+                "role": "system",
+                "content": f"Context analysis completed. Confidence: {analysis['confidence']:.2f}"
+            })
+            
+            return state
+        
+        def synthesize_node(state: AgentState) -> AgentState:
+            """Node to synthesize final context"""
+            analysis_result = state["analysis_result"]
+            relevant_docs = analysis_result.get("relevant_docs", [])
+            query = state["query"]
+            
+            synthesis = synthesize_context(relevant_docs, query)
+            state["context_data"] = [synthesis]
+            state["messages"].append({
+                "role": "assistant",
+                "content": f"Context synthesized with {len(relevant_docs)} relevant documents"
+            })
+            
+            return state
+        
+        def should_continue(state: AgentState) -> str:
+            """Determine if we should continue processing"""
+            analysis_result = state.get("analysis_result", {})
+            confidence = analysis_result.get("confidence", 0.0)
+            
+            # Continue if we have high confidence, otherwise end
+            if confidence > 0.5:
+                return "synthesize"
+            else:
+                return END
+        
+        # Build the workflow graph
+        workflow = StateGraph(AgentState)
+        
+        # Add nodes
+        workflow.add_node("retrieve", retrieve_node)
+        workflow.add_node("analyze", analyze_node)  
+        workflow.add_node("synthesize", synthesize_node)
+        
+        # Add edges
+        workflow.set_entry_point("retrieve")
+        workflow.add_edge("retrieve", "analyze")
+        workflow.add_conditional_edges("analyze", should_continue, {
+            "synthesize": "synthesize",
+            END: END
+        })
+        workflow.add_edge("synthesize", END)
+        
+        return workflow.compile()
+    
+    def enhanced_search_with_workflow(self, query: str, user_id: str) -> Dict[str, Any]:
+        """Enhanced search using agentic workflow"""
+        try:
+            initial_state = {
+                "query": query,
+                "user_id": user_id,
+                "context_data": [],
+                "retrieved_docs": [],
+                "analysis_result": {},
+                "messages": []
+            }
+            
+            # Run the agentic workflow
+            final_state = self.workflow.invoke(initial_state)
+            
+            # Extract results
+            context_data = final_state.get("context_data", [])
+            analysis_result = final_state.get("analysis_result", {})
+            messages = final_state.get("messages", [])
+            
+            return {
+                "context": context_data[0] if context_data else {},
+                "analysis": analysis_result,
+                "workflow_messages": messages,
+                "confidence": analysis_result.get("confidence", 0.0),
+                "enhanced": True
+            }
+            
+        except Exception as e:
+            logger.error(f"Enhanced search workflow failed: {e}")
+            # Fallback to regular search
+            regular_results = self.search_relevant_context(query, user_id)
+            return {
+                "context": {"synthesized_context": "Fallback context", "data_types": []},
+                "analysis": {"confidence": 0.3},
+                "workflow_messages": [{"role": "system", "content": "Used fallback search"}],
+                "confidence": 0.3,
+                "enhanced": False,
+                "fallback_results": regular_results
+            }

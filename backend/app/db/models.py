@@ -22,6 +22,7 @@ class User(Base):
     # Relationships
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
+    custom_agents = relationship("CustomAgent", back_populates="user", cascade="all, delete-orphan")
 
 class UserSession(Base):
     """User session management for QuickBooks OAuth"""
@@ -146,3 +147,24 @@ class APIUsage(Base):
     cost_estimate = Column(Float, default=0.0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     date = Column(String(10), nullable=False)  # YYYY-MM-DD for daily aggregation
+
+class CustomAgent(Base):
+    """Custom AI agents created by users"""
+    __tablename__ = "custom_agents"
+    
+    id = Column(String(36), primary_key=True, index=True)  # UUID
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    system_prompt = Column(Text, nullable=False)
+    tools = Column(JSON)  # List of enabled tools
+    color = Column(String(20), default="blue")
+    icon = Column(String(50), default="SparklesIcon")
+    is_active = Column(Boolean, default=True)
+    usage_count = Column(Integer, default=0)
+    last_used_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="custom_agents")

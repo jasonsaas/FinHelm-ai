@@ -225,3 +225,54 @@ class APIUsageStats(BaseModel):
     grok_calls: int
     tokens_used: int
     cost_estimate: float
+
+# Custom Agent schemas
+class AgentTool(BaseModel):
+    name: str
+    description: str
+    enabled: bool = False
+
+class CustomAgentBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    prompt: str
+    tools: List[AgentTool] = []
+    color: str = "blue"
+    icon: str = "SparklesIcon"
+
+class CustomAgentCreate(CustomAgentBase):
+    @validator('name')
+    def validate_name(cls, v):
+        if len(v) < 3:
+            raise ValueError('Agent name must be at least 3 characters')
+        if len(v) > 100:
+            raise ValueError('Agent name must be less than 100 characters')
+        return v.strip()
+    
+    @validator('prompt')
+    def validate_prompt(cls, v):
+        if len(v) < 50:
+            raise ValueError('System prompt must be at least 50 characters')
+        if len(v) > 5000:
+            raise ValueError('System prompt must be less than 5000 characters')
+        return v.strip()
+
+class CustomAgentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    prompt: Optional[str] = None
+    tools: Optional[List[AgentTool]] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+
+class CustomAgentResponse(CustomAgentBase):
+    id: str
+    user_id: int
+    is_active: bool
+    usage_count: int
+    last_used_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True

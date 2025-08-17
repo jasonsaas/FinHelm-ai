@@ -18,19 +18,22 @@ python-dotenv==1.0.0
 # HTTP requests and OAuth
 requests==2.31.0
 requests-oauthlib==2.1.0
+tenacity==8.2.3  # For retry logic
+redis==5.0.1    # For caching
 
 # AI and LangChain
-langchain==0.1.0
-langchain-core==0.1.23
-langchain-community==0.0.20
+langchain==0.1.20
+langchain-core==0.1.52
+langchain-community==0.0.38
+langgraph==0.0.69
 
 # Anthropic Claude
-anthropic==0.8.1
+anthropic==0.18.1
 
 # Vector Store and Embeddings
-faiss-cpu==1.7.4
-sentence-transformers==2.2.2
-chromadb==0.4.18
+faiss-cpu==1.8.0
+sentence-transformers==2.7.0
+chromadb==0.4.24
 
 # Data processing
 pandas==2.1.4

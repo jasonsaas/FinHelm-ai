@@ -12,13 +12,14 @@ from urllib.parse import parse_qs
 from app.core.config import settings
 from app.db.database import engine, get_db
 from app.db import models, schemas
-from app.core.security import create_access_token, verify_token, hash_password, verify_password, generate_session_token
+from app.core.security import create_access_token, verify_token, hash_password, verify_password, generate_session_token, get_current_user
 from app.services.quickbooks_service import QuickBooksService
 from app.services.claude_service import ClaudeService
 from app.services.rag_service import RAGService
 from app.agents.finance_agent import FinanceAgent
 from app.agents.sales_agent import SalesAgent
 from app.agents.operations_agent import OperationsAgent
+from app.api import agents
 
 # Configure logging
 logging.basicConfig(
@@ -76,8 +77,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security
-security = HTTPBearer()
+# Include routers
+app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 
 # === AUTHENTICATION ENDPOINTS ===
 
@@ -158,20 +159,6 @@ def login(user_data: schemas.UserLogin, db: Session = Depends(get_db)):
         logger.error(f"Login error: {e}")
         raise HTTPException(status_code=500, detail="Login failed")
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), 
-                    db: Session = Depends(get_db)) -> models.User:
-    """Get current authenticated user"""
-    payload = verify_token(credentials.credentials)
-    username = payload.get("sub")
-    
-    if not username:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
-    
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    
-    return user
 
 # === QUICKBOOKS OAUTH ENDPOINTS ===
 
@@ -576,6 +563,166 @@ def get_agent_recommendations(
     except Exception as e:
         logger.error(f"Error getting agent recommendations: {e}")
         raise HTTPException(status_code=500, detail="Failed to get recommendations")
+
+# === QUICKBOOKS DATA ENDPOINTS ===
+
+@app.get("/api/quickbooks/reconciliation-status")
+def get_quickbooks_reconciliation_status(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get QuickBooks data reconciliation status"""
+    try:
+        # Get active QuickBooks session
+        qb_session = db.query(models.UserSession).filter(
+            models.UserSession.user_id == current_user.id,
+            models.UserSession.is_active == True,
+            models.UserSession.expires_at > datetime.utcnow()
+        ).first()
+        
+        if not qb_session:
+            raise HTTPException(
+                status_code=401,
+                detail="No active QuickBooks session"
+            )
+        
+        qb_service = QuickBooksService()
+        reconciliation_status = qb_service.get_reconciliation_status(qb_session.qbo_realm_id)
+        
+        return {
+            "company_name": qb_session.qbo_company_name,
+            "realm_id": qb_session.qbo_realm_id,
+            "reconciliation_status": reconciliation_status
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting reconciliation status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get reconciliation status")
+
+@app.post("/api/quickbooks/sync-data")
+def sync_quickbooks_data(
+    sync_request: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Sync and validate QuickBooks data with reconciliation"""
+    try:
+        # Get active QuickBooks session
+        qb_session = db.query(models.UserSession).filter(
+            models.UserSession.user_id == current_user.id,
+            models.UserSession.is_active == True,
+            models.UserSession.expires_at > datetime.utcnow()
+        ).first()
+        
+        if not qb_session:
+            raise HTTPException(
+                status_code=401,
+                detail="No active QuickBooks session"
+            )
+        
+        qb_service = QuickBooksService()
+        
+        # Get requested data types (default to all)
+        data_types = sync_request.get("data_types", ["accounts", "invoices", "customers", "items"])
+        use_cache = sync_request.get("use_cache", True)
+        
+        sync_results = {}
+        
+        for data_type in data_types:
+            try:
+                result = qb_service.query_with_reconciliation(
+                    qb_session.qbo_access_token,
+                    qb_session.qbo_realm_id,
+                    data_type,
+                    use_cache=use_cache
+                )
+                sync_results[data_type] = {
+                    "status": result["reconciliation_status"],
+                    "record_count": len(result["data"]),
+                    "validation": result["validation"],
+                    "source": result["source"]
+                }
+                
+            except Exception as e:
+                sync_results[data_type] = {
+                    "status": "failed",
+                    "error": str(e)
+                }
+        
+        logger.info(f"Data sync completed for user {current_user.username}")
+        
+        return {
+            "sync_results": sync_results,
+            "timestamp": datetime.now().isoformat(),
+            "company_name": qb_session.qbo_company_name
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Data sync error: {e}")
+        raise HTTPException(status_code=500, detail="Data sync failed")
+
+@app.get("/api/quickbooks/data/{data_type}")
+def get_quickbooks_data(
+    data_type: str,
+    use_cache: bool = True,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get specific QuickBooks data type with validation"""
+    try:
+        if data_type not in ["accounts", "invoices", "customers", "vendors", "items", "payments"]:
+            raise HTTPException(status_code=400, detail="Invalid data type")
+        
+        # Get active QuickBooks session
+        qb_session = db.query(models.UserSession).filter(
+            models.UserSession.user_id == current_user.id,
+            models.UserSession.is_active == True,
+            models.UserSession.expires_at > datetime.utcnow()
+        ).first()
+        
+        if not qb_session:
+            raise HTTPException(
+                status_code=401,
+                detail="No active QuickBooks session"
+            )
+        
+        qb_service = QuickBooksService()
+        result = qb_service.query_with_reconciliation(
+            qb_session.qbo_access_token,
+            qb_session.qbo_realm_id,
+            data_type,
+            use_cache=use_cache
+        )
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting {data_type} data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get {data_type} data")
+
+@app.delete("/api/quickbooks/cache")
+def clear_quickbooks_cache(
+    current_user: models.User = Depends(get_current_user)
+):
+    """Clear QuickBooks cache"""
+    try:
+        qb_service = QuickBooksService()
+        success = qb_service.clear_cache()
+        
+        if success:
+            return {"message": "Cache cleared successfully"}
+        else:
+            return {"message": "Cache not available or clear failed"}
+            
+    except Exception as e:
+        logger.error(f"Cache clear error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to clear cache")
 
 # === UTILITY ENDPOINTS ===
 
