@@ -4,7 +4,7 @@ import os
 
 class Settings(BaseSettings):
     # Application
-    app_name: str = "QuickCauz.ai"
+    app_name: str = "ERPInsight.ai"
     debug: bool = True
     log_level: str = "INFO"
     
@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     
     # Database
-    database_url: str = "sqlite:///./quickcauz.db"
+    database_url: str = "sqlite:///./erpinsight.db"
     
     # QuickBooks Online OAuth 2.0
     qbo_client_id: str
@@ -25,12 +25,17 @@ class Settings(BaseSettings):
     qbo_api_base: str = "https://sandbox-quickbooks.api.intuit.com"
     qbo_discovery_document: str = "https://appcenter.intuit.com/api/v1/OpenID_sandbox"
     
-    # xAI Grok Configuration
-    grok_api_key: str
-    grok_api_base: str = "https://api.x.ai/v1"
-    grok_model: str = "grok-beta"
-    grok_max_tokens: int = 2000
-    grok_temperature: float = 0.7
+    # Anthropic Claude Configuration
+    anthropic_api_key: str
+    claude_model: str = "claude-3-5-sonnet-20241022"
+    claude_max_tokens: int = 4000
+    claude_temperature: float = 0.7
+    
+    # Vector Store Configuration
+    vector_db_path: str = "data/vectors"
+    embedding_model: str = "all-MiniLM-L6-v2"
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
     
     # CORS
     cors_origins: List[str] = [

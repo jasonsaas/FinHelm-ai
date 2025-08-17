@@ -3,21 +3,23 @@ import json
 import logging
 from datetime import datetime, timedelta
 from ..services.quickbooks_service import QuickBooksService
-from ..services.grok_service import GrokService
+from ..services.claude_service import ClaudeService
+from ..services.rag_service import RAGService
 
 logger = logging.getLogger(__name__)
 
 class FinanceAgent:
-    """Specialized agent for financial analysis using QuickBooks data and Grok LLM"""
+    """Specialized agent for financial analysis using QuickBooks data and Claude LLM"""
     
     def __init__(self, agent_config: Optional[Dict] = None):
         self.config = agent_config or {}
         self.qb_service = QuickBooksService()
-        self.grok_service = GrokService()
+        self.claude_service = ClaudeService()
+        self.rag_service = RAGService()
         self.conversation_history: List[Dict] = []
     
     def process_query(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Process financial query with QuickBooks data and Grok analysis"""
+        """Process financial query with QuickBooks data and Claude analysis"""
         try:
             # Get QuickBooks credentials from context
             access_token = context.get('access_token')
@@ -40,14 +42,23 @@ class FinanceAgent:
                 access_token, realm_id, data_requirements
             )
             
+            # Add financial data to RAG system for context
+            user_id = context.get('user_id')
+            if user_id:
+                for data_type, data in financial_data.items():
+                    self.rag_service.add_financial_data(user_id, data, data_type)
+            
+            # Search for relevant context using RAG
+            relevant_context = self.rag_service.search_relevant_context(query, user_id) if user_id else []
+            
             # Generate charts for visualization
             charts = self._generate_charts(financial_data, data_requirements)
             
-            # Format data context for Grok analysis
-            data_context = self._format_financial_context(financial_data)
+            # Format data context for Claude analysis
+            data_context = self._format_financial_context(financial_data, relevant_context)
             
-            # Get AI analysis from Grok
-            grok_response = self.grok_service.analyze_financial_data(data_context, query)
+            # Get AI analysis from Claude
+            claude_response = self.claude_service.analyze_financial_data(data_context, query)
             
             # Calculate key financial metrics
             metrics = self._calculate_key_metrics(financial_data)
@@ -55,21 +66,33 @@ class FinanceAgent:
             # Add to conversation history
             self.conversation_history.append({
                 "query": query,
-                "response": grok_response,
+                "response": claude_response,
                 "timestamp": datetime.now().isoformat(),
                 "data_sources": list(financial_data.keys())
             })
             
+            # Extract structured response if available
+            if isinstance(claude_response, dict):
+                response_text = claude_response.get("analysis", "")
+                recommendations = claude_response.get("recommendations", [])
+                key_insights = claude_response.get("key_insights", [])
+            else:
+                response_text = claude_response
+                recommendations = self._extract_recommendations(claude_response)
+                key_insights = []
+            
             return {
-                "response": grok_response,
+                "response": response_text,
                 "charts": charts,
                 "financial_data": financial_data,
                 "insights": {
                     "metrics": metrics,
+                    "key_insights": key_insights,
                     "data_sources": list(financial_data.keys()),
-                    "analysis_type": "grok_financial_analysis"
+                    "analysis_type": "claude_financial_analysis",
+                    "rag_context_used": len(relevant_context) > 0
                 },
-                "recommendations": self._extract_recommendations(grok_response)
+                "recommendations": recommendations
             }
             
         except Exception as e:
@@ -158,9 +181,18 @@ class FinanceAgent:
             
         return financial_data
     
-    def _format_financial_context(self, financial_data: Dict[str, Any]) -> str:
-        """Format financial data for Grok analysis"""
+    def _format_financial_context(self, financial_data: Dict[str, Any], relevant_context: List[Dict] = None) -> str:
+        """Format financial data for Claude analysis"""
         context_parts = []
+        
+        # Add RAG context if available
+        if relevant_context:
+            context_parts.append("=== RELEVANT HISTORICAL CONTEXT ===")
+            for ctx in relevant_context[:3]:  # Top 3 most relevant
+                context_parts.append(f"Context Score: {ctx['score']:.2f}")
+                context_parts.append(f"Data Type: {ctx['data_type']}")
+                context_parts.append(f"Content: {ctx['content'][:300]}...")
+                context_parts.append("---")
         
         if 'accounts' in financial_data:
             accounts = financial_data['accounts']
@@ -378,13 +410,13 @@ class FinanceAgent:
         
         return metrics
     
-    def _extract_recommendations(self, grok_response: str) -> List[str]:
-        """Extract actionable recommendations from Grok response"""
+    def _extract_recommendations(self, claude_response: str) -> List[str]:
+        """Extract actionable recommendations from Claude response"""
         recommendations = []
         
         try:
-            # Look for common recommendation patterns in Grok's response
-            lines = grok_response.split('\n')
+            # Look for common recommendation patterns in Claude's response
+            lines = claude_response.split('\n')
             
             for line in lines:
                 line = line.strip()
@@ -405,7 +437,7 @@ class FinanceAgent:
     
     def generate_forecast(self, access_token: str, realm_id: str, 
                          forecast_type: str = "revenue", periods: int = 12) -> Dict[str, Any]:
-        """Generate financial forecast using Grok's reasoning"""
+        """Generate financial forecast using Claude's reasoning"""
         try:
             # Fetch historical data for forecasting
             if forecast_type == "revenue":
@@ -416,8 +448,8 @@ class FinanceAgent:
                 # Get account data for other forecasts
                 historical_data = self.qb_service.query_accounts(access_token, realm_id)
             
-            # Use Grok to generate forecast
-            forecast_response = self.grok_service.generate_forecast(
+            # Use Claude to generate forecast
+            forecast_response = self.claude_service.generate_forecast(
                 historical_data, forecast_type, periods
             )
             

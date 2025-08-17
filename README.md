@@ -1,25 +1,26 @@
-# 🚀 QuickCauz.ai
+# 🚀 ERPInsight.ai
 
-**AI-Powered Financial Co-Pilot for QuickBooks Online**
+**AI-Powered ERP Insights and Chatbots for QuickBooks Online**
 
-*Transforming small business financial data into actionable insights with xAI's Grok LLM*
+*Transforming ERP data into actionable business insights through intelligent agents and conversational AI*
 
 ---
 
-## 🌟 **What is QuickCauz.ai?**
+## 🌟 **What is ERPInsight.ai?**
 
-QuickCauz.ai is an AI-powered financial analysis platform that connects directly to QuickBooks Online to provide:
+ERPInsight.ai is an AI-powered ERP platform that connects directly to QuickBooks Online through specialized AI agents to provide:
 
-- 🤖 **Conversational AI Analysis** - Chat with your financial data using natural language
-- 📊 **Real-time Insights** - Get instant analysis of your financial performance  
-- 🔮 **Predictive Forecasting** - AI-powered revenue and cash flow predictions
-- 💡 **Actionable Recommendations** - Personalized advice to improve your business
-- 📈 **Interactive Visualizations** - Beautiful charts and graphs of your data
+- 🤖 **Specialized AI Agents** - Finance, Sales, and Operations agents for targeted analysis
+- 📊 **Real-time ERP Insights** - Get instant analysis of your business data
+- 🔮 **Intelligent Forecasting** - AI-powered predictions using advanced RAG technology
+- 💡 **Actionable Recommendations** - Personalized advice from domain-specific agents
+- 📈 **Interactive Visualizations** - Beautiful charts and graphs powered by AI insights
 
 ### **Powered by:**
-- **🧠 xAI Grok** - Advanced reasoning and financial analysis
-- **📚 QuickBooks Online API** - Secure, real-time financial data access
-- **⚡ Modern Tech Stack** - FastAPI + React for blazing-fast performance
+- **🧠 Anthropic Claude** - Advanced reasoning and business analysis
+- **🔍 RAG Technology** - Vector search with FAISS for contextual insights  
+- **📚 QuickBooks Online API** - Secure, real-time ERP data access
+- **⚡ Modern Tech Stack** - FastAPI + React + LangChain for enterprise performance
 
 ---
 
@@ -32,11 +33,11 @@ QuickCauz.ai is an AI-powered financial analysis platform that connects directly
 - 🚀 **Entrepreneurs** who want to understand their numbers better
 
 ### **Use Cases:**
-- "What's my runway with current burn rate?"
-- "Forecast revenue for Q4 based on trends"
-- "Which expense categories should I optimize?"
-- "How does my cash flow look for next quarter?"
-- "What are the key insights from my P&L?"
+**Finance Agent:** "What's my runway with current burn rate?"
+**Sales Agent:** "Who are my top customers and what's driving churn?"
+**Operations Agent:** "Which vendors should I renegotiate contracts with?"
+**All Agents:** "Forecast revenue for Q4 based on historical trends"
+**AI-Powered:** "What are the key insights from my business data?"
 
 ---
 
@@ -47,14 +48,14 @@ QuickCauz.ai is an AI-powered financial analysis platform that connects directly
 # QuickBooks Developer Account (Free)
 https://developer.intuit.com/ 
 
-# xAI Grok API Access
-https://x.ai/api
+# Anthropic Claude API Access
+https://console.anthropic.com/
 ```
 
 ### **2. Clone & Setup**
 ```bash
-git clone <your-repo>
-cd quickcauz-ai
+git clone https://github.com/your-username/erpinsight-ai.git
+cd erpinsight-ai
 
 # Backend
 cd backend
@@ -76,7 +77,7 @@ npm start
 3. 🔗 Connect QuickBooks Online
 4. 💬 Start chatting with your data!
 
-**📖 Full setup guide:** [SETUP-QUICKCAUZ.md](./SETUP-QUICKCAUZ.md)
+**📖 Full setup guide:** See the Environment Setup section below
 
 ---
 
@@ -103,20 +104,44 @@ npm start
 
 ### **Key Integrations:**
 - **🔗 QuickBooks Online REST API** - Secure OAuth 2.0 data access
-- **🧠 xAI Grok API** - Advanced AI reasoning and analysis
-- **💾 SQLite Database** - Session and chat history storage
+- **🧠 Anthropic Claude API** - Advanced AI reasoning and analysis
+- **🔍 Vector Search (FAISS)** - RAG-powered contextual understanding
+- **💾 SQLite/PostgreSQL Database** - Session and chat history storage
 - **🔐 JWT Authentication** - Secure user management
+
+---
+
+## 🤖 **AI Agents**
+
+ERPInsight.ai features three specialized AI agents, each designed for specific business domains:
+
+### **💰 Finance Agent**
+- **Focus**: Financial analysis, cash flow, budgeting, forecasting
+- **Capabilities**: P&L analysis, variance explanations, KPI tracking
+- **Example Queries**: "What's my burn rate?" • "Forecast Q4 revenue"
+
+### **📈 Sales Agent** 
+- **Focus**: Revenue optimization, customer analysis, sales performance
+- **Capabilities**: Customer segmentation, churn analysis, growth strategies
+- **Example Queries**: "Top customers by revenue?" • "Sales growth trends?"
+
+### **⚙️ Operations Agent**
+- **Focus**: Business operations, vendor management, cost optimization
+- **Capabilities**: Expense analysis, inventory management, process efficiency
+- **Example Queries**: "Biggest expense categories?" • "Vendor performance?"
 
 ---
 
 ## 🚀 **Features**
 
-### **✅ Core Features (MVP)**
+### **✅ Core Features**
 - 🔑 **Secure Authentication** - JWT + QuickBooks OAuth 2.0
-- 💬 **AI Chat Interface** - Natural language financial queries  
-- 📊 **Data Visualization** - Interactive charts and graphs
-- 🔮 **Financial Forecasting** - AI-powered predictions
-- 📱 **Responsive Design** - Works on desktop and mobile
+- 🤖 **Multi-Agent AI System** - Specialized Finance, Sales, Operations agents
+- 💬 **Conversational Interface** - Natural language business queries
+- 🔍 **RAG-Powered Search** - Vector embeddings for contextual understanding
+- 📊 **Interactive Visualizations** - Charts and graphs with real-time data
+- 🔮 **AI-Powered Forecasting** - Predictions with confidence intervals
+- 📱 **Modern Responsive UI** - TailwindCSS with mobile-first design
 
 ### **🔄 Data Sources**
 - 📈 **Chart of Accounts** - All account types and balances
@@ -126,11 +151,12 @@ npm start
 - 💰 **Cash Flow** - Liquidity and runway calculations
 
 ### **🤖 AI Capabilities**
-- 📊 **Financial Analysis** - Automated insights and trends
-- 🎯 **Performance Metrics** - KPI calculation and monitoring
-- 💡 **Recommendations** - Actionable business advice
-- 🔮 **Forecasting** - Revenue, expense, and cash flow predictions
-- 📈 **Trend Analysis** - Historical pattern recognition
+- 🧠 **Multi-Agent Reasoning** - Domain-specific expertise for Finance, Sales, Operations
+- 📊 **Context-Aware Analysis** - RAG technology for relevant historical insights
+- 🎯 **Performance Metrics** - Automated KPI calculation and monitoring
+- 💡 **Actionable Recommendations** - Business advice tailored to your data
+- 🔮 **Predictive Analytics** - Revenue, expense, and operational forecasting
+- 📈 **Trend Recognition** - Pattern detection across multiple data dimensions
 
 ---
 
@@ -142,7 +168,10 @@ npm start
 - **🗄️ SQLAlchemy** - Database ORM
 - **🔐 JWT + OAuth 2.0** - Authentication
 - **📊 Pandas** - Data processing
-- **🧠 xAI Grok** - AI/LLM integration
+- **🧠 Anthropic Claude** - AI/LLM integration
+- **🔍 LangChain** - RAG pipeline and agent framework
+- **📊 FAISS** - Vector similarity search
+- **🤖 Sentence Transformers** - Text embeddings
 
 ### **Frontend:**
 - **⚛️ React 18** - Modern UI framework

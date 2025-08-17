@@ -140,7 +140,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
               <CurrencyDollarIcon className="h-8 w-8 text-blue-600 mr-2" />
-              <h1 className="text-xl font-bold text-gray-900">QuickCauz.ai</h1>
+              <h1 className="text-xl font-bold text-gray-900">ERPInsight.ai</h1>
             </div>
             <button
               onClick={handleLogout}
@@ -160,7 +160,7 @@ const Dashboard = () => {
             className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
-            New Financial Analysis
+            New AI Chat
           </button>
         </div>
 
@@ -209,13 +209,13 @@ const Dashboard = () => {
           <div className="p-4">
             <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
               <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2" />
-              Recent Analyses
+              AI Conversations
             </h3>
             {chatSessions.length === 0 ? (
               <div className="text-center py-8">
                 <ChartBarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-sm text-gray-500 mb-2">No analyses yet</p>
-                <p className="text-xs text-gray-400">Start by asking about your financial data!</p>
+                <p className="text-sm text-gray-500 mb-2">No conversations yet</p>
+                <p className="text-xs text-gray-400">Start by asking about your business data!</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -254,7 +254,7 @@ const Dashboard = () => {
             Settings & Preferences
           </button>
           <div className="mt-2 text-xs text-gray-500">
-            Powered by xAI Grok • v2.0
+            Powered by Anthropic Claude • v2.0
           </div>
         </div>
       </div>
@@ -275,8 +275,8 @@ const Dashboard = () => {
                 Connect QuickBooks Online
               </h2>
               <p className="text-gray-600 mb-6">
-                Connect your QuickBooks Online account to unlock powerful AI-driven financial insights, 
-                forecasting, and personalized recommendations powered by Grok.
+                Connect your QuickBooks Online account to unlock powerful AI-driven ERP insights, 
+                forecasting, and personalized recommendations powered by Claude AI.
               </p>
               <div className="space-y-4">
                 <button

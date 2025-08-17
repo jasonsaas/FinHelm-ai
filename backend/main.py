@@ -14,8 +14,11 @@ from app.db.database import engine, get_db
 from app.db import models, schemas
 from app.core.security import create_access_token, verify_token, hash_password, verify_password, generate_session_token
 from app.services.quickbooks_service import QuickBooksService
-from app.services.grok_service import GrokService
+from app.services.claude_service import ClaudeService
+from app.services.rag_service import RAGService
 from app.agents.finance_agent import FinanceAgent
+from app.agents.sales_agent import SalesAgent
+from app.agents.operations_agent import OperationsAgent
 
 # Configure logging
 logging.basicConfig(
@@ -34,23 +37,31 @@ async def lifespan(app: FastAPI):
     models.Base.metadata.create_all(bind=engine)
     logger.info("Database tables created/verified")
     
-    # Test Grok API connection
+    # Test Claude API connection
     try:
-        grok_service = GrokService()
-        health = grok_service.health_check()
-        logger.info(f"Grok API status: {health['status']}")
+        claude_service = ClaudeService()
+        health = claude_service.health_check()
+        logger.info(f"Claude API status: {health['status']}")
     except Exception as e:
-        logger.warning(f"Grok API connection test failed: {e}")
+        logger.warning(f"Claude API connection test failed: {e}")
+    
+    # Initialize RAG service
+    try:
+        global rag_service
+        rag_service = RAGService()
+        logger.info("RAG service initialized successfully")
+    except Exception as e:
+        logger.warning(f"RAG service initialization failed: {e}")
     
     yield
     
     # Shutdown
-    logger.info("Shutting down QuickCauz.ai backend...")
+    logger.info("Shutting down ERPInsight.ai backend...")
 
 # Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
-    description="AI-powered financial insights and forecasting for QuickBooks Online users",
+    description="AI-powered ERP insights and chatbots for QuickBooks Online users",
     version="2.0.0",
     debug=settings.debug,
     lifespan=lifespan
@@ -387,9 +398,18 @@ def process_chat_query(
             "timestamp": datetime.utcnow().isoformat()
         }
         
-        # Process query with Finance Agent
-        finance_agent = FinanceAgent()
-        ai_result = finance_agent.process_query(query.message, context)
+        # Determine which agent to use based on query or explicit agent type
+        agent_type = getattr(query, 'agent_type', 'finance')  # Default to finance
+        
+        if agent_type == 'sales':
+            agent = SalesAgent()
+        elif agent_type == 'operations':
+            agent = OperationsAgent()
+        else:
+            agent = FinanceAgent()
+        
+        # Process query with selected agent
+        ai_result = agent.process_query(query.message, context)
         
         # Save AI response
         ai_message = models.ChatMessage(
@@ -426,16 +446,147 @@ def process_chat_query(
         logger.error(f"Error processing chat query: {e}")
         raise HTTPException(status_code=500, detail="Failed to process your query. Please try again.")
 
+# === AGENT MANAGEMENT ENDPOINTS ===
+
+@app.get("/agents/list")
+def list_available_agents(current_user: models.User = Depends(get_current_user)):
+    """List all available AI agents"""
+    agents = [
+        {
+            "id": "finance",
+            "name": "Finance Agent",
+            "description": "Specialized in financial analysis, forecasting, and budget insights",
+            "capabilities": [
+                "Cash flow analysis", 
+                "Profit & loss analysis", 
+                "Budget variance explanations",
+                "Financial forecasting",
+                "Key performance indicators"
+            ],
+            "icon": "💰"
+        },
+        {
+            "id": "sales",
+            "name": "Sales Agent", 
+            "description": "Focused on sales performance, customer analysis, and revenue optimization",
+            "capabilities": [
+                "Sales trend analysis",
+                "Customer segmentation", 
+                "Revenue forecasting",
+                "Performance metrics",
+                "Growth strategies"
+            ],
+            "icon": "📈"
+        },
+        {
+            "id": "operations",
+            "name": "Operations Agent",
+            "description": "Optimizes business operations, inventory, and vendor management",
+            "capabilities": [
+                "Expense analysis",
+                "Inventory optimization",
+                "Vendor performance", 
+                "Process efficiency",
+                "Cost reduction strategies"
+            ],
+            "icon": "⚙️"
+        }
+    ]
+    
+    return {"agents": agents}
+
+@app.post("/agents/{agent_id}/chat", response_model=schemas.ChatResponse)
+def chat_with_specific_agent(
+    agent_id: str,
+    query: schemas.ChatQuery,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Chat with a specific agent"""
+    if agent_id not in ['finance', 'sales', 'operations']:
+        raise HTTPException(status_code=400, detail="Invalid agent ID")
+    
+    # Update query with agent type
+    query.agent_type = agent_id
+    
+    # Use existing chat query processing
+    return process_chat_query(query, current_user, db)
+
+@app.get("/agents/recommendations")
+def get_agent_recommendations(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get personalized agent recommendations based on user's data"""
+    try:
+        # Get user's QuickBooks session
+        qb_session = db.query(models.UserSession).filter(
+            models.UserSession.user_id == current_user.id,
+            models.UserSession.is_active == True,
+            models.UserSession.expires_at > datetime.utcnow()
+        ).first()
+        
+        if not qb_session:
+            return {
+                "recommendations": [
+                    {
+                        "agent_id": "finance",
+                        "priority": "high",
+                        "reason": "Connect to QuickBooks to get personalized recommendations"
+                    }
+                ]
+            }
+        
+        # Basic recommendations based on common business needs
+        recommendations = [
+            {
+                "agent_id": "finance",
+                "priority": "high",
+                "reason": "Review your cash flow and financial performance",
+                "suggested_questions": [
+                    "What's my current cash flow status?",
+                    "Show me my profit and loss trends",
+                    "What are my biggest expenses this month?"
+                ]
+            },
+            {
+                "agent_id": "sales",
+                "priority": "medium", 
+                "reason": "Analyze your sales performance and growth opportunities",
+                "suggested_questions": [
+                    "Who are my top customers by revenue?",
+                    "What's my monthly sales growth rate?",
+                    "Which products/services are performing best?"
+                ]
+            },
+            {
+                "agent_id": "operations",
+                "priority": "medium",
+                "reason": "Optimize your business operations and reduce costs",
+                "suggested_questions": [
+                    "What are my biggest expense categories?",
+                    "Which vendors am I spending the most with?",
+                    "Do I have any low inventory items?"
+                ]
+            }
+        ]
+        
+        return {"recommendations": recommendations}
+        
+    except Exception as e:
+        logger.error(f"Error getting agent recommendations: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get recommendations")
+
 # === UTILITY ENDPOINTS ===
 
 @app.get("/")
 def read_root():
     """Root endpoint"""
     return {
-        "message": "Welcome to QuickCauz.ai API",
+        "message": "Welcome to ERPInsight.ai API",
         "version": "2.0.0",
         "status": "active",
-        "integrations": ["QuickBooks Online", "xAI Grok"]
+        "integrations": ["QuickBooks Online", "Anthropic Claude", "Vector Search"]
     }
 
 @app.get("/health")
@@ -445,9 +596,9 @@ def health_check(db: Session = Depends(get_db)):
         # Test database connection
         db.execute("SELECT 1")
         
-        # Test Grok API
-        grok_service = GrokService()
-        grok_health = grok_service.health_check()
+        # Test Claude API
+        claude_service = ClaudeService()
+        claude_health = claude_service.health_check()
         
         return {
             "status": "healthy",
@@ -455,7 +606,8 @@ def health_check(db: Session = Depends(get_db)):
             "version": "2.0.0",
             "services": {
                 "database": "healthy",
-                "grok_api": grok_health["status"]
+                "claude_api": claude_health["status"],
+                "rag_service": "healthy" if 'rag_service' in globals() else "not_initialized"
             }
         }
     except Exception as e:

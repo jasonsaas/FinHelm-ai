@@ -55,10 +55,15 @@ export const chatAPI = {
   createSession: (sessionData) => apiClient.post('/chat/sessions', sessionData),
   getSessions: () => apiClient.get('/chat/sessions'),
   getSession: (sessionId) => apiClient.get(`/chat/sessions/${sessionId}`),
+  getMessages: (sessionId) => apiClient.get(`/chat/sessions/${sessionId}/messages`),
   sendMessage: (queryData) => apiClient.post('/chat/query', queryData),
   deleteSession: (sessionId) => apiClient.delete(`/chat/sessions/${sessionId}`),
   updateSession: (sessionId, sessionData) => 
     apiClient.patch(`/chat/sessions/${sessionId}`, sessionData),
+  // Agent-related endpoints
+  getAgents: () => apiClient.get('/agents/list'),
+  chatWithAgent: (agentId, queryData) => apiClient.post(`/agents/${agentId}/chat`, queryData),
+  getAgentRecommendations: () => apiClient.get('/agents/recommendations'),
 };
 
 // Forecasting API
@@ -127,5 +132,9 @@ export const isQuickBooksConnected = () => {
   const session = getQuickBooksSession();
   return !!session;
 };
+
+// Convenience functions for auth
+export const login = (credentials) => authAPI.login(credentials);
+export const register = (userData) => authAPI.register(userData);
 
 export default apiClient;

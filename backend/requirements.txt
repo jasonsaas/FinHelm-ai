@@ -19,9 +19,18 @@ python-dotenv==1.0.0
 requests==2.31.0
 requests-oauthlib==2.1.0
 
-# AI and LangChain (for potential future use)
-langchain==0.0.352
-langchain-core==0.1.12
+# AI and LangChain
+langchain==0.1.0
+langchain-core==0.1.23
+langchain-community==0.0.20
+
+# Anthropic Claude
+anthropic==0.8.1
+
+# Vector Store and Embeddings
+faiss-cpu==1.7.4
+sentence-transformers==2.2.2
+chromadb==0.4.18
 
 # Data processing
 pandas==2.1.4
