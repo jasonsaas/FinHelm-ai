@@ -1,0 +1,22 @@
+{
+  "name": "erpinsight-ai",
+  "version": "1.0.0",
+  "description": "AI-powered ERP insights for QuickBooks and Sage Intacct",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx src/runner/claude-runner.ts"
+  },
+  "keywords": [
+    "ai",
+    "erp",
+    "quickbooks",
+    "sage",
+    "insights"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tsx": "^4.20.4"
+  }
+}
