@@ -1,17 +1,42 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["ES2020"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "noEmitOnError": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "include": [
+    "src/**/*",
+    "backend/convex/**/*",
+    "*.ts",
+    "*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests",
+    "backend/src/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
 }

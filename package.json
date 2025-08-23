@@ -9,22 +9,33 @@
     "shared"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "npx ts-node src/index.ts",
+    "build": "tsc",
+    "dev:workspaces": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
-    "build": "npm run build --workspaces",
+    "build:workspaces": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces",
     "clean": "npm run clean --workspaces"
   },
   "devDependencies": {
+    "@types/node": "^20.19.11",
     "concurrently": "^8.2.2",
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "convex": "^1.26.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
+  },
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.1"
   }
 }

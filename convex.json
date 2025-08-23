@@ -1,0 +1,13 @@
+{
+  "functions": "convex/",
+  "generateCommonJSApi": false,
+  "node": {
+    "externalPackages": ["node-fetch", "axios"]
+  },
+  "authInfo": [
+    {
+      "domain": "https://finhelm.ai",
+      "applicationID": "finhelm-ai-prod"
+    }
+  ]
+}
