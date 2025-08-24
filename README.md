@@ -168,7 +168,7 @@ Update `.env` with your Convex deployment URL:
 ```bash
 # Convex Configuration
 CONVEX_DEPLOYMENT=your-deployment-url
-CONVEX_URL=https://your-deployment.convex.cloud
+CONVEX_URL=https://ardent-dog-632.convex.cloud
 
 # Application Configuration
 NODE_ENV=development

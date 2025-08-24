@@ -81,9 +81,11 @@ npx convex dev
 ### 5. Update Environment
 After Convex initialization, update your `.env` file:
 ```env
-CONVEX_DEPLOYMENT=your-deployment-name
-CONVEX_URL=https://your-deployment.convex.cloud
+CONVEX_DEPLOYMENT=https://ardent-dog-632.convex.cloud
+CONVEX_URL=https://ardent-dog-632.convex.cloud
 ```
+
+**Current Deployment**: `ardent-dog-632` (Team: jason-cf1f8, Project: finhelm-ai)
 
 ### 6. Verify Setup
 ```bash
