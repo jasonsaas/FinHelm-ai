@@ -80,6 +80,119 @@ export const getAgentInsights = action({
 });
 
 /**
+ * Create a new agent
+ */
+export const createAgent = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.string(),
+    category: v.union(
+      v.literal("financial_intelligence"),
+      v.literal("supply_chain"),
+      v.literal("revenue_customer"),
+      v.literal("it_operations"),
+      v.literal("custom")
+    ),
+    type: v.union(
+      v.literal("variance_explanation"),
+      v.literal("forecasting"),
+      v.literal("cash_flow_intelligence"),
+      v.literal("revenue_recognition"),
+      v.literal("close_acceleration"),
+      v.literal("board_presentation"),
+      v.literal("anomaly_monitoring"),
+      v.literal("inventory_optimization"),
+      v.literal("demand_forecasting"),
+      v.literal("vendor_risk"),
+      v.literal("cogs_attribution"),
+      v.literal("fill_rate_analytics"),
+      v.literal("supplier_integration"),
+      v.literal("sales_mix_margin"),
+      v.literal("churn_prediction"),
+      v.literal("revenue_decomposition"),
+      v.literal("sales_forecast"),
+      v.literal("customer_profitability"),
+      v.literal("upsell_expansion"),
+      v.literal("data_sync_health"),
+      v.literal("change_impact"),
+      v.literal("workflow_automation"),
+      v.literal("change_management_risk"),
+      v.literal("access_review"),
+      v.literal("multivariate_prediction"),
+      v.literal("custom")
+    ),
+    config: v.object({
+      prompt: v.optional(v.string()),
+      model: v.optional(v.string()),
+      temperature: v.optional(v.number()),
+      maxTokens: v.optional(v.number()),
+      dataSource: v.array(v.string()),
+      filters: v.optional(v.object({
+        accounts: v.optional(v.array(v.id("accounts"))),
+        dateRange: v.optional(v.object({
+          start: v.number(),
+          end: v.number(),
+        })),
+        minAmount: v.optional(v.number()),
+        maxAmount: v.optional(v.number()),
+      })),
+      schedule: v.optional(v.object({
+        frequency: v.union(
+          v.literal("manual"),
+          v.literal("daily"),
+          v.literal("weekly"),
+          v.literal("monthly")
+        ),
+        time: v.optional(v.string()),
+        timezone: v.optional(v.string()),
+      })),
+    }),
+    userDefinedCalls: v.optional(v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      description: v.string(),
+      prompt: v.string()
+    }))),
+    version: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const agentId = await ctx.db.insert("agents", {
+      organizationId: args.organizationId,
+      userId: args.userId,
+      name: args.name,
+      description: args.description,
+      category: args.category,
+      type: args.type,
+      isActive: true,
+      isPremium: false,
+      config: args.config,
+      lastRunAt: undefined,
+      runCount: 0,
+      averageExecutionTime: undefined,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // Store user-defined calls separately if provided
+    if (args.userDefinedCalls && args.userDefinedCalls.length > 0) {
+      // In a real implementation, you might want to store these in a separate table
+      // For now, we'll store them in the agent's config
+      await ctx.db.patch(agentId, {
+        config: {
+          ...args.config,
+          userDefinedCalls: args.userDefinedCalls,
+          version: args.version || '1.0.0'
+        }
+      });
+    }
+
+    return agentId;
+  },
+});
+
+/**
  * Get agent by ID
  */
 export const getAgent = query({
@@ -207,6 +320,285 @@ export const failAgentExecution = mutation({
 });
 
 /**
+ * Get all agents for an organization
+ */
+export const getAgents = query({
+  args: {
+    organizationId: v.id("organizations"),
+    category: v.optional(v.union(
+      v.literal("financial_intelligence"),
+      v.literal("supply_chain"),
+      v.literal("revenue_customer"),
+      v.literal("it_operations"),
+      v.literal("custom")
+    )),
+    isActive: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db
+      .query("agents")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId));
+
+    let agents = await query.collect();
+
+    // Apply filters
+    if (args.category) {
+      agents = agents.filter(agent => agent.category === args.category);
+    }
+
+    if (args.isActive !== undefined) {
+      agents = agents.filter(agent => agent.isActive === args.isActive);
+    }
+
+    // Sort by creation date (newest first)
+    agents.sort((a, b) => b.createdAt - a.createdAt);
+
+    if (args.limit) {
+      agents = agents.slice(0, args.limit);
+    }
+
+    return agents;
+  },
+});
+
+/**
+ * Update an existing agent
+ */
+export const updateAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+    organizationId: v.id("organizations"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    category: v.optional(v.union(
+      v.literal("financial_intelligence"),
+      v.literal("supply_chain"),
+      v.literal("revenue_customer"),
+      v.literal("it_operations"),
+      v.literal("custom")
+    )),
+    config: v.optional(v.object({
+      prompt: v.optional(v.string()),
+      model: v.optional(v.string()),
+      temperature: v.optional(v.number()),
+      maxTokens: v.optional(v.number()),
+      dataSource: v.array(v.string()),
+      userDefinedCalls: v.optional(v.array(v.object({
+        id: v.string(),
+        name: v.string(),
+        description: v.string(),
+        prompt: v.string()
+      }))),
+      version: v.optional(v.string()),
+    })),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // Verify agent exists and belongs to organization
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+    if (agent.organizationId !== args.organizationId) {
+      throw new Error("Agent does not belong to the specified organization");
+    }
+
+    const updateData: any = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.name) updateData.name = args.name;
+    if (args.description) updateData.description = args.description;
+    if (args.category) updateData.category = args.category;
+    if (args.config) updateData.config = { ...agent.config, ...args.config };
+    if (args.isActive !== undefined) updateData.isActive = args.isActive;
+
+    await ctx.db.patch(args.agentId, updateData);
+    return args.agentId;
+  },
+});
+
+/**
+ * Delete/deactivate an agent
+ */
+export const deleteAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+    organizationId: v.id("organizations"),
+    hardDelete: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // Verify agent exists and belongs to organization
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+    if (agent.organizationId !== args.organizationId) {
+      throw new Error("Agent does not belong to the specified organization");
+    }
+
+    if (args.hardDelete) {
+      // Hard delete - completely remove the agent
+      await ctx.db.delete(args.agentId);
+    } else {
+      // Soft delete - just mark as inactive
+      await ctx.db.patch(args.agentId, {
+        isActive: false,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return args.agentId;
+  },
+});
+
+/**
+ * Clone an existing agent
+ */
+export const cloneAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    newName: v.string(),
+    newVersion: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Get the original agent
+    const originalAgent = await ctx.db.get(args.agentId);
+    if (!originalAgent) {
+      throw new Error("Original agent not found");
+    }
+    if (originalAgent.organizationId !== args.organizationId) {
+      throw new Error("Original agent does not belong to the specified organization");
+    }
+
+    // Create a new agent based on the original
+    const clonedAgentId = await ctx.db.insert("agents", {
+      organizationId: args.organizationId,
+      userId: args.userId,
+      name: args.newName,
+      description: `Clone of ${originalAgent.description}`,
+      category: originalAgent.category,
+      type: originalAgent.type,
+      isActive: true,
+      isPremium: originalAgent.isPremium,
+      config: {
+        ...originalAgent.config,
+        version: args.newVersion || '1.0.0'
+      },
+      lastRunAt: undefined,
+      runCount: 0,
+      averageExecutionTime: undefined,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return clonedAgentId;
+  },
+});
+
+/**
+ * Get agent versions and history
+ */
+export const getAgentVersions = query({
+  args: {
+    organizationId: v.id("organizations"),
+    agentName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .filter((q) => q.eq(q.field("name"), args.agentName))
+      .collect();
+
+    // Sort by creation date (newest first) and extract version info
+    const versions = agents
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(agent => ({
+        id: agent._id,
+        version: agent.config.version || '1.0.0',
+        createdAt: agent.createdAt,
+        updatedAt: agent.updatedAt,
+        isActive: agent.isActive,
+        config: agent.config,
+        description: agent.description,
+      }));
+
+    return versions;
+  },
+});
+
+/**
+ * Get deployment status and statistics
+ */
+export const getDeploymentStats = query({
+  args: {
+    organizationId: v.id("organizations"),
+    timeRange: v.optional(v.object({
+      start: v.number(),
+      end: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Get all agents for the organization
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    // Get executions within time range if specified
+    let executions = await ctx.db
+      .query("agentExecutions")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    if (args.timeRange) {
+      executions = executions.filter(exec => 
+        exec.startedAt >= args.timeRange!.start && 
+        exec.startedAt <= args.timeRange!.end
+      );
+    }
+
+    // Calculate statistics
+    const totalAgents = agents.length;
+    const activeAgents = agents.filter(a => a.isActive).length;
+    const totalExecutions = executions.length;
+    const successfulExecutions = executions.filter(e => e.status === 'completed').length;
+    const failedExecutions = executions.filter(e => e.status === 'failed').length;
+
+    // Calculate average execution time
+    const completedExecutions = executions.filter(e => e.status === 'completed' && e.executionTime);
+    const avgExecutionTime = completedExecutions.length > 0
+      ? completedExecutions.reduce((sum, e) => sum + (e.executionTime || 0), 0) / completedExecutions.length
+      : 0;
+
+    // Group agents by category
+    const agentsByCategory = agents.reduce((acc, agent) => {
+      acc[agent.category] = (acc[agent.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalAgents,
+      activeAgents,
+      inactiveAgents: totalAgents - activeAgents,
+      totalExecutions,
+      successfulExecutions,
+      failedExecutions,
+      successRate: totalExecutions > 0 ? (successfulExecutions / totalExecutions) * 100 : 0,
+      avgExecutionTime,
+      agentsByCategory,
+      recentExecutions: executions
+        .sort((a, b) => b.startedAt - a.startedAt)
+        .slice(0, 10),
+    };
+  },
+});
+
+/**
  * Get agent execution history
  */
 export const getAgentExecutions = query({
@@ -234,6 +626,35 @@ export const getAgentExecutions = query({
     }
 
     return executions;
+  },
+});
+
+/**
+ * Real-time agent status updates
+ */
+export const subscribeToAgentUpdates = query({
+  args: {
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    // This is a simple implementation for real-time updates
+    // In production, you might want to implement more sophisticated subscription logic
+    const agents = await ctx.db
+      .query("agents")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    const recentExecutions = await ctx.db
+      .query("agentExecutions")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .order("desc")
+      .take(20);
+
+    return {
+      agents,
+      recentExecutions,
+      lastUpdated: Date.now(),
+    };
   },
 });
 
