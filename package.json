@@ -16,14 +16,19 @@
     "dev:backend": "npm run dev --workspace=backend",
     "build:workspaces": "npm run build --workspaces",
     "test": "npm run test --workspaces",
+    "test:agent": "jest tests/agent-test.ts",
+    "test:local": "jest",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces",
     "clean": "npm run clean --workspaces"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.19.11",
     "concurrently": "^8.2.2",
     "convex": "^1.26.1",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   },
