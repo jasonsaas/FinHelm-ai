@@ -13,7 +13,13 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     profileImage: v.optional(v.string()),
-    role: v.union(v.literal("admin"), v.literal("user"), v.literal("viewer")),
+    role: v.union(
+      v.literal("admin"), 
+      v.literal("user"), 
+      v.literal("viewer"),
+      v.literal("compliance_agent"),
+      v.literal("data_sync_agent")
+    ),
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -98,7 +104,30 @@ export default defineSchema({
       companyId: v.optional(v.string()),
       realmId: v.optional(v.string()),
       expiresAt: v.optional(v.number()),
+      tokenType: v.optional(v.string()),
+      scope: v.optional(v.string()),
     }),
+    oauthMetadata: v.optional(v.object({
+      authorizationUrl: v.optional(v.string()),
+      tokenUrl: v.optional(v.string()),
+      revokeUrl: v.optional(v.string()),
+      discoveryUrl: v.optional(v.string()),
+      state: v.optional(v.string()),
+      codeVerifier: v.optional(v.string()),
+      lastRefreshAt: v.optional(v.number()),
+      refreshAttempts: v.optional(v.number()),
+    })),
+    complianceInfo: v.optional(v.object({
+      authorizedRoles: v.array(v.string()),
+      lastAuditAt: v.optional(v.number()),
+      auditStatus: v.optional(v.union(
+        v.literal("compliant"),
+        v.literal("warning"),
+        v.literal("non_compliant")
+      )),
+      dataClassification: v.optional(v.string()),
+      retentionPolicy: v.optional(v.string()),
+    })),
     lastSyncAt: v.optional(v.number()),
     syncStatus: v.union(
       v.literal("active"),
@@ -112,7 +141,8 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_user", ["userId"])
     .index("by_erp_type", ["erpType"])
-    .index("by_sync_status", ["syncStatus"]),
+    .index("by_sync_status", ["syncStatus"])
+    .index("by_compliance_status", ["complianceInfo.auditStatus"]),
 
   // Chart of Accounts (Hierarchical structure inspired by sample CSV)
   accounts: defineTable({
@@ -437,4 +467,69 @@ export default defineSchema({
     .index("by_action", ["action"])
     .index("by_resource", ["resourceType"])
     .index("by_timestamp", ["timestamp"]),
+
+  // OAuth Token Management for Enhanced Security and Compliance
+  oauthTokens: defineTable({
+    connectionId: v.id("erpConnections"),
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    provider: v.union(
+      v.literal("quickbooks"),
+      v.literal("sage_intacct"),
+      v.literal("netsuite"),
+      v.literal("xero")
+    ),
+    tokenData: v.object({
+      accessToken: v.string(),
+      refreshToken: v.optional(v.string()),
+      tokenType: v.optional(v.string()),
+      scope: v.optional(v.string()),
+      expiresIn: v.optional(v.number()),
+      expiresAt: v.number(),
+      issuedAt: v.number(),
+    }),
+    securityMetadata: v.object({
+      encryptionMethod: v.optional(v.string()),
+      keyVersion: v.optional(v.string()),
+      lastRotation: v.optional(v.number()),
+      rotationSchedule: v.optional(v.string()),
+      accessCount: v.number(),
+      lastAccessAt: v.optional(v.number()),
+    }),
+    complianceData: v.object({
+      dataClassification: v.string(),
+      retentionDays: v.number(),
+      authorizedRoles: v.array(v.string()),
+      purposeLimitation: v.array(v.string()),
+      consentStatus: v.union(
+        v.literal("granted"),
+        v.literal("revoked"),
+        v.literal("expired")
+      ),
+      auditTrail: v.array(v.object({
+        action: v.string(),
+        timestamp: v.number(),
+        userId: v.optional(v.id("users")),
+        ipAddress: v.optional(v.string()),
+        userAgent: v.optional(v.string()),
+      })),
+    }),
+    status: v.union(
+      v.literal("active"),
+      v.literal("expired"),
+      v.literal("revoked"),
+      v.literal("suspended")
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    scheduledDeletionAt: v.optional(v.number()),
+  })
+    .index("by_connection", ["connectionId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_user", ["userId"])
+    .index("by_provider", ["provider"])
+    .index("by_status", ["status"])
+    .index("by_expires_at", ["tokenData.expiresAt"])
+    .index("by_scheduled_deletion", ["scheduledDeletionAt"])
+    .index("by_consent_status", ["complianceData.consentStatus"]),
 });
