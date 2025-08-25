@@ -437,4 +437,65 @@ export default defineSchema({
     .index("by_action", ["action"])
     .index("by_resource", ["resourceType"])
     .index("by_timestamp", ["timestamp"]),
+
+  // Chat Messages for AI Assistant
+  chatMessages: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    sessionId: v.string(), // Chat session identifier
+    type: v.union(v.literal("user"), v.literal("assistant")),
+    content: v.string(),
+    agentExecutionId: v.optional(v.id("agentExecutions")), // Link to agent execution for assistant messages
+    response: v.optional(v.object({
+      summary: v.string(),
+      dataOverview: v.object({
+        totalRecords: v.number(),
+        dateRange: v.object({
+          start: v.number(),
+          end: v.number(),
+        }),
+        keyMetrics: v.array(v.object({
+          name: v.string(),
+          value: v.any(),
+          change: v.optional(v.number()),
+          trend: v.optional(v.union(
+            v.literal("up"),
+            v.literal("down"),
+            v.literal("flat")
+          )),
+        })),
+      }),
+      patterns: v.array(v.object({
+        type: v.string(),
+        description: v.string(),
+        confidence: v.number(),
+        impact: v.union(
+          v.literal("high"),
+          v.literal("medium"),
+          v.literal("low")
+        ),
+        data: v.optional(v.array(v.any())),
+      })),
+      actions: v.array(v.object({
+        type: v.string(),
+        description: v.string(),
+        priority: v.union(
+          v.literal("high"),
+          v.literal("medium"),
+          v.literal("low")
+        ),
+        automated: v.boolean(),
+        dueDate: v.optional(v.number()),
+        assignee: v.optional(v.id("users")),
+      })),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_user", ["userId"])
+    .index("by_session", ["sessionId"])
+    .index("by_type", ["type"])
+    .index("by_created_at", ["createdAt"])
+    .index("by_session_time", ["sessionId", "createdAt"]),
 });

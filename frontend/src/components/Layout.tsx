@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Home, BarChart3, Wallet, CreditCard, Menu } from 'lucide-react'
+import { Home, BarChart3, Wallet, CreditCard, Menu, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 import { clsx } from 'clsx'
 
@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
   { name: 'Accounts', href: '/accounts', icon: Wallet },
   { name: 'Transactions', href: '/transactions', icon: CreditCard },
+  { name: 'AI Assistant', href: '/chat', icon: MessageCircle },
 ]
 
 export function Layout() {
