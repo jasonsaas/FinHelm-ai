@@ -1,0 +1,31 @@
+id,userId,accountId,amount,description,category,date,type,accountType,accountBalance
+txn_001,user_123,acc_001,45.67,Coffee at Starbucks,Food & Dining,2024-01-15,expense,checking,2500.00
+txn_002,user_123,acc_001,-2500.00,Salary deposit,Income,2024-01-01,income,checking,5000.00
+txn_003,user_123,acc_001,12.99,Netflix subscription,Entertainment,2024-01-15,expense,checking,2487.01
+txn_004,user_123,acc_001,85.43,Grocery shopping,Food & Dining,2024-01-16,expense,checking,2401.58
+txn_005,user_123,acc_001,1200.00,Rent payment,Housing,2024-01-01,expense,checking,1201.58
+txn_006,user_123,acc_001,65.00,Gas station,Transportation,2024-01-17,expense,checking,1136.58
+txn_007,user_123,acc_001,15.99,Amazon purchase,Shopping,2024-01-18,expense,checking,1120.59
+txn_008,user_123,acc_001,150.00,Utility bill,Utilities,2024-01-02,expense,checking,970.59
+txn_009,user_123,acc_001,8950.00,ANOMALY: Large cash deposit,Income,2024-01-20,income,checking,9920.59
+txn_010,user_123,acc_001,4500.00,ANOMALY: Large withdrawal,Transfer,2024-01-21,expense,checking,5420.59
+txn_011,user_123,acc_002,25.00,ATM withdrawal,Cash,2024-01-15,expense,savings,1500.00
+txn_012,user_123,acc_002,500.00,Transfer from checking,Transfer,2024-01-10,income,savings,2000.00
+txn_013,user_123,acc_002,0.85,Interest earned,Income,2024-01-31,income,savings,2000.85
+txn_014,user_123,acc_002,7500.00,ANOMALY: Large savings deposit,Income,2024-01-25,income,savings,9500.85
+txn_015,user_123,acc_003,350.00,Credit card payment,Payment,2024-01-15,expense,credit,-350.00
+txn_016,user_123,acc_003,-150.00,Restaurant dinner,Food & Dining,2024-01-16,expense,credit,-500.00
+txn_017,user_123,acc_003,-89.99,Online shopping,Shopping,2024-01-17,expense,credit,-589.99
+txn_018,user_123,acc_003,-2500.00,ANOMALY: Large credit purchase,Shopping,2024-01-22,expense,credit,-3089.99
+txn_019,user_123,acc_001,35.50,Lunch at restaurant,Food & Dining,2024-01-19,expense,checking,5385.09
+txn_020,user_123,acc_001,78.20,Phone bill,Utilities,2024-01-03,expense,checking,5306.89
+txn_021,user_123,acc_001,25.00,Coffee shop,Food & Dining,2024-01-22,expense,checking,5281.89
+txn_022,user_123,acc_001,120.00,Internet bill,Utilities,2024-01-04,expense,checking,5161.89
+txn_023,user_123,acc_001,45.00,Parking fee,Transportation,2024-01-23,expense,checking,5116.89
+txn_024,user_123,acc_001,15000.00,ANOMALY: Massive deposit,Income,2024-01-26,income,checking,20116.89
+txn_025,user_123,acc_001,95.67,Grocery shopping,Food & Dining,2024-01-24,expense,checking,20021.22
+txn_026,user_123,acc_002,12000.00,ANOMALY: Large transfer,Transfer,2024-01-27,income,savings,21500.85
+txn_027,user_123,acc_001,-12000.00,ANOMALY: Large transfer out,Transfer,2024-01-27,expense,checking,8021.22
+txn_028,user_123,acc_001,67.89,Gas station,Transportation,2024-01-25,expense,checking,7953.33
+txn_029,user_123,acc_001,32.10,Coffee and pastry,Food & Dining,2024-01-26,expense,checking,7921.23
+txn_030,user_123,acc_001,189.99,Insurance payment,Insurance,2024-01-05,expense,checking,7731.24
