@@ -238,6 +238,503 @@ export const getAgentExecutions = query({
 });
 
 /**
+ * Create a new custom agent
+ */
+export const createCustomAgent = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.string(),
+    category: v.union(
+      v.literal("financial_intelligence"),
+      v.literal("supply_chain"),
+      v.literal("revenue_customer"),
+      v.literal("it_operations"),
+      v.literal("custom")
+    ),
+    type: v.union(
+      v.literal("variance_explanation"),
+      v.literal("forecasting"),
+      v.literal("cash_flow_intelligence"),
+      v.literal("revenue_recognition"),
+      v.literal("close_acceleration"),
+      v.literal("board_presentation"),
+      v.literal("anomaly_monitoring"),
+      v.literal("inventory_optimization"),
+      v.literal("demand_forecasting"),
+      v.literal("vendor_risk"),
+      v.literal("cogs_attribution"),
+      v.literal("fill_rate_analytics"),
+      v.literal("supplier_integration"),
+      v.literal("sales_mix_margin"),
+      v.literal("churn_prediction"),
+      v.literal("revenue_decomposition"),
+      v.literal("sales_forecast"),
+      v.literal("customer_profitability"),
+      v.literal("upsell_expansion"),
+      v.literal("data_sync_health"),
+      v.literal("change_impact"),
+      v.literal("workflow_automation"),
+      v.literal("change_management_risk"),
+      v.literal("access_review"),
+      v.literal("multivariate_prediction"),
+      v.literal("custom")
+    ),
+    config: v.object({
+      prompt: v.string(),
+      model: v.string(),
+      temperature: v.number(),
+      maxTokens: v.number(),
+      dataSource: v.array(v.string()),
+      filters: v.optional(v.object({
+        accounts: v.optional(v.array(v.id("accounts"))),
+        dateRange: v.optional(v.object({
+          start: v.number(),
+          end: v.number(),
+        })),
+        minAmount: v.optional(v.number()),
+        maxAmount: v.optional(v.number()),
+      })),
+      schedule: v.optional(v.object({
+        frequency: v.union(
+          v.literal("manual"),
+          v.literal("daily"),
+          v.literal("weekly"),
+          v.literal("monthly")
+        ),
+        time: v.optional(v.string()),
+        timezone: v.optional(v.string()),
+      })),
+    }),
+    language: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    isPremium: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // Validate user has permission to create agents in this organization
+    const userOrg = await ctx.db
+      .query("userOrganizations")
+      .withIndex("by_user_org", (q) => 
+        q.eq("userId", args.userId).eq("organizationId", args.organizationId)
+      )
+      .first();
+
+    if (!userOrg || !userOrg.isActive) {
+      throw new Error("User does not have permission to create agents in this organization");
+    }
+
+    if (!["owner", "admin", "member"].includes(userOrg.role)) {
+      throw new Error("Insufficient permissions to create agents");
+    }
+
+    // Validate agent name uniqueness within organization
+    const existingAgent = await ctx.db
+      .query("agents")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .filter((q) => q.eq(q.field("name"), args.name))
+      .first();
+
+    if (existingAgent) {
+      throw new Error("An agent with this name already exists in your organization");
+    }
+
+    // Validate model selection
+    const allowedModels = [
+      "gpt-4", "gpt-4-turbo", "claude-3-sonnet", 
+      "claude-3-opus", "claude-3-haiku", "grok-beta"
+    ];
+    
+    if (!allowedModels.includes(args.config.model)) {
+      throw new Error("Invalid AI model selected");
+    }
+
+    // Validate temperature and token limits
+    if (args.config.temperature < 0 || args.config.temperature > 2) {
+      throw new Error("Temperature must be between 0 and 2");
+    }
+
+    if (args.config.maxTokens < 1 || args.config.maxTokens > 4000) {
+      throw new Error("Max tokens must be between 1 and 4000");
+    }
+
+    // Validate prompt length
+    if (args.config.prompt.length < 1 || args.config.prompt.length > 4000) {
+      throw new Error("Prompt must be between 1 and 4000 characters");
+    }
+
+    // Create the agent
+    const agentId = await ctx.db.insert("agents", {
+      organizationId: args.organizationId,
+      userId: args.userId,
+      name: args.name,
+      description: args.description,
+      category: args.category,
+      type: args.type || "custom",
+      isActive: args.isActive ?? true,
+      isPremium: args.isPremium ?? false,
+      config: {
+        ...args.config,
+        dataSource: args.config.dataSource.length > 0 ? args.config.dataSource : ["transactions", "accounts"],
+      },
+      lastRunAt: undefined,
+      runCount: 0,
+      averageExecutionTime: undefined,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    console.log(`Custom agent created: ${args.name} (${agentId}) for org ${args.organizationId}`);
+    return { agentId, status: "deployed" };
+  },
+});
+
+/**
+ * Update an existing custom agent
+ */
+export const updateCustomAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+    userId: v.id("users"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    config: v.optional(v.object({
+      prompt: v.optional(v.string()),
+      model: v.optional(v.string()),
+      temperature: v.optional(v.number()),
+      maxTokens: v.optional(v.number()),
+      dataSource: v.optional(v.array(v.string())),
+      filters: v.optional(v.object({
+        accounts: v.optional(v.array(v.id("accounts"))),
+        dateRange: v.optional(v.object({
+          start: v.number(),
+          end: v.number(),
+        })),
+        minAmount: v.optional(v.number()),
+        maxAmount: v.optional(v.number()),
+      })),
+      schedule: v.optional(v.object({
+        frequency: v.union(
+          v.literal("manual"),
+          v.literal("daily"),
+          v.literal("weekly"),
+          v.literal("monthly")
+        ),
+        time: v.optional(v.string()),
+        timezone: v.optional(v.string()),
+      })),
+    })),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    // Get the existing agent
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+
+    // Check if user has permission to update this agent
+    const userOrg = await ctx.db
+      .query("userOrganizations")
+      .withIndex("by_user_org", (q) => 
+        q.eq("userId", args.userId).eq("organizationId", agent.organizationId)
+      )
+      .first();
+
+    if (!userOrg || !userOrg.isActive) {
+      throw new Error("User does not have permission to update agents in this organization");
+    }
+
+    if (!["owner", "admin", "member"].includes(userOrg.role)) {
+      throw new Error("Insufficient permissions to update agents");
+    }
+
+    // Prepare update object
+    const updateData: any = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.name !== undefined) {
+      // Check for name uniqueness if name is being changed
+      if (args.name !== agent.name) {
+        const existingAgent = await ctx.db
+          .query("agents")
+          .withIndex("by_organization", (q) => q.eq("organizationId", agent.organizationId))
+          .filter((q) => q.eq(q.field("name"), args.name))
+          .first();
+
+        if (existingAgent) {
+          throw new Error("An agent with this name already exists in your organization");
+        }
+      }
+      updateData.name = args.name;
+    }
+
+    if (args.description !== undefined) {
+      updateData.description = args.description;
+    }
+
+    if (args.config) {
+      updateData.config = {
+        ...agent.config,
+        ...args.config,
+      };
+
+      // Validate updated config
+      if (args.config.model) {
+        const allowedModels = [
+          "gpt-4", "gpt-4-turbo", "claude-3-sonnet", 
+          "claude-3-opus", "claude-3-haiku", "grok-beta"
+        ];
+        
+        if (!allowedModels.includes(args.config.model)) {
+          throw new Error("Invalid AI model selected");
+        }
+      }
+
+      if (args.config.temperature !== undefined) {
+        if (args.config.temperature < 0 || args.config.temperature > 2) {
+          throw new Error("Temperature must be between 0 and 2");
+        }
+      }
+
+      if (args.config.maxTokens !== undefined) {
+        if (args.config.maxTokens < 1 || args.config.maxTokens > 4000) {
+          throw new Error("Max tokens must be between 1 and 4000");
+        }
+      }
+
+      if (args.config.prompt !== undefined) {
+        if (args.config.prompt.length < 1 || args.config.prompt.length > 4000) {
+          throw new Error("Prompt must be between 1 and 4000 characters");
+        }
+      }
+    }
+
+    if (args.isActive !== undefined) {
+      updateData.isActive = args.isActive;
+    }
+
+    // Update the agent
+    await ctx.db.patch(args.agentId, updateData);
+
+    console.log(`Custom agent updated: ${agent.name} (${args.agentId})`);
+    return { agentId: args.agentId, status: "updated" };
+  },
+});
+
+/**
+ * Get agents for an organization
+ */
+export const getOrganizationAgents = query({
+  args: {
+    organizationId: v.id("organizations"),
+    category: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db
+      .query("agents")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId));
+
+    if (args.category) {
+      query = query.filter((q) => q.eq(q.field("category"), args.category));
+    }
+
+    if (args.isActive !== undefined) {
+      query = query.filter((q) => q.eq(q.field("isActive"), args.isActive));
+    }
+
+    const agents = await query.collect();
+
+    // Sort by creation date (newest first)
+    agents.sort((a, b) => b.createdAt - a.createdAt);
+
+    return agents;
+  },
+});
+
+/**
+ * Delete a custom agent
+ */
+export const deleteCustomAgent = mutation({
+  args: {
+    agentId: v.id("agents"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Get the existing agent
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+
+    // Check if user has permission to delete this agent
+    const userOrg = await ctx.db
+      .query("userOrganizations")
+      .withIndex("by_user_org", (q) => 
+        q.eq("userId", args.userId).eq("organizationId", agent.organizationId)
+      )
+      .first();
+
+    if (!userOrg || !userOrg.isActive) {
+      throw new Error("User does not have permission to delete agents in this organization");
+    }
+
+    if (!["owner", "admin"].includes(userOrg.role)) {
+      throw new Error("Insufficient permissions to delete agents");
+    }
+
+    // Only allow deletion of custom agents
+    if (agent.category !== "custom") {
+      throw new Error("Only custom agents can be deleted");
+    }
+
+    // Mark as inactive instead of deleting to preserve execution history
+    await ctx.db.patch(args.agentId, {
+      isActive: false,
+      updatedAt: Date.now(),
+    });
+
+    console.log(`Custom agent deactivated: ${agent.name} (${args.agentId})`);
+    return { agentId: args.agentId, status: "deactivated" };
+  },
+});
+
+/**
+ * Preview agent response (for testing during creation)
+ */
+export const previewAgentResponse = action({
+  args: {
+    config: v.object({
+      prompt: v.string(),
+      model: v.string(),
+      temperature: v.number(),
+      maxTokens: v.number(),
+    }),
+    testQuery: v.string(),
+    organizationId: v.optional(v.id("organizations")),
+  },
+  handler: async (ctx, args) => {
+    const startTime = Date.now();
+
+    try {
+      // Simulate AI model response based on the config
+      // In a real implementation, this would call the actual AI service
+      const response = await simulateAIResponse({
+        prompt: args.config.prompt,
+        query: args.testQuery,
+        model: args.config.model,
+        temperature: args.config.temperature,
+        maxTokens: args.config.maxTokens,
+      });
+
+      const executionTime = Date.now() - startTime;
+      const estimatedTokens = Math.ceil(response.length / 4); // Rough estimate: 4 chars per token
+
+      return {
+        response,
+        executionTime,
+        tokensUsed: estimatedTokens,
+        model: args.config.model,
+      };
+
+    } catch (error) {
+      throw new Error(`Preview failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  },
+});
+
+/**
+ * Simulate AI response for preview (mock implementation)
+ * In production, this would integrate with actual AI services
+ */
+async function simulateAIResponse(args: {
+  prompt: string;
+  query: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+}) {
+  // Add slight delay to simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+
+  const { prompt, query, model } = args;
+
+  // Generate a mock response based on the query type
+  if (query.toLowerCase().includes("rewrite") && query.toLowerCase().includes("email")) {
+    return `Based on your custom agent prompt, here's a professional email rewrite:
+
+Subject: Monthly Expense Report Summary - [Current Period]
+
+Dear Management Team,
+
+I hope this message finds you well. Please find attached our comprehensive expense report for the current reporting period.
+
+Key Highlights:
+• Total expenses processed: $X,XXX
+• Variance from budget: +/- X%
+• Top expense categories: Travel, Software, Operations
+
+The detailed breakdown includes all supporting documentation and has been reviewed for accuracy and compliance with company policies.
+
+Please let me know if you need any additional information or clarification regarding these expenses.
+
+Best regards,
+[Your Name]
+
+---
+Generated by: ${model} | Custom Financial AI Assistant`;
+  }
+
+  if (query.toLowerCase().includes("categorize") && query.toLowerCase().includes("transaction")) {
+    return `Transaction Categorization Analysis:
+
+Payment Amount: $2,500
+Vendor: ABC Software Solutions
+
+Recommended Category: Software & Technology
+Confidence: 95%
+
+Reasoning:
+• Vendor name indicates software/technology service
+• Amount is consistent with business software licenses
+• Pattern matches previous software subscription payments
+
+Sub-category Suggestions:
+- Business Software Licenses
+- SaaS Subscriptions
+- Technology Services
+
+Account Code: 6200 (Technology Expenses)
+Tax Implications: Potentially deductible business expense
+
+---
+Generated by: ${model} | Custom Financial AI Assistant`;
+  }
+
+  // Default financial analysis response
+  return `Financial Analysis Response:
+
+Query: "${query}"
+
+Based on your custom agent configuration and the system prompt you've provided, I would analyze this request through the lens of financial intelligence and provide actionable insights.
+
+Key Analysis Points:
+• Data-driven approach using your organization's financial data
+• Context-aware responses based on your specific business needs
+• Actionable recommendations aligned with your financial goals
+
+This preview demonstrates how your custom agent would respond to similar queries. The actual response would include real data from your connected financial systems and provide more detailed, specific insights.
+
+Model: ${model}
+Temperature: ${args.temperature} (${args.temperature < 0.3 ? 'Conservative' : args.temperature > 1.0 ? 'Creative' : 'Balanced'})
+
+---
+Generated by: ${model} | Custom Financial AI Assistant`;
+}
+
+/**
  * Internal function to generate insights based on agent type
  */
 async function generateAgentInsights(
