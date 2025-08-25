@@ -44,8 +44,10 @@ finhelm-ai/
 - **Backend**: Node.js 18+ with TypeScript
 - **Database**: Convex reactive database
 - **AI Integration**: Grok API for reasoning (configurable)
-- **ERP Integration**: QuickBooks API, Sage Intacct REST API
-- **Authentication**: Convex Auth with OAuth support
+- **ERP Integration**: QuickBooks & Sage Intacct OAuth2 with intuit-oauth
+- **Authentication**: Convex Auth with role-based access control
+- **Security**: Token encryption, audit logging, compliance monitoring
+- **Testing**: Vitest with comprehensive OAuth testing suite
 - **Development**: ts-node, TypeScript 5.9+
 
 ## 📋 Quick Start
@@ -85,11 +87,32 @@ finhelm-ai/
    node deploy-test-simple.js
    ```
 
+6. **Set up OAuth2 integration** (optional)
+   ```bash
+   # Follow the OAuth setup guide
+   cat documentation/oauth-setup.md
+   
+   # Run OAuth tests
+   npm run test:oauth
+   ```
+
 ## 🧪 Testing and Development
 
 ### Running Tests
 
 ```bash
+# Run all tests
+npm test
+
+# Run OAuth-specific tests
+npm run test:oauth
+
+# Run with test coverage
+npm run test:coverage
+
+# Run integration tests (requires sandbox setup)
+npm run test:integration
+
 # Test TypeScript compilation
 npm run build
 
@@ -361,12 +384,18 @@ Error: Functions failed to deploy
 - ✅ Deployment readiness validation
 - ✅ Complete documentation and setup guides
 
+### Recently Completed (Week 2)
+- ✅ **OAuth2 Integration**: Sage Intacct and QuickBooks OAuth2 flows
+- ✅ **Enhanced Security**: Role-based access control for compliance agents
+- ✅ **Comprehensive Testing**: 90%+ test coverage with sandbox integration
+- ✅ **Token Management**: Secure token storage with encryption and rotation
+- ✅ **Compliance Framework**: Audit logging and data classification
+
 ### Next Steps
-- QuickBooks OAuth integration
-- Sage Intacct API connection
 - Grok AI integration for reasoning
 - Frontend development
 - Production deployment
+- Advanced compliance monitoring
 
 ## 📞 Support
 

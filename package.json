@@ -15,17 +15,26 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
     "build:workspaces": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:integration": "RUN_INTEGRATION_TESTS=true vitest convex/tests/sandbox-integration.test.ts",
+    "test:oauth": "vitest convex/tests/erp-auth.test.ts",
+    "test:all": "npm run test && npm run test:workspaces",
+    "test:workspaces": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces",
     "clean": "npm run clean --workspaces"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
+    "@vitest/ui": "^3.2.4",
     "concurrently": "^8.2.2",
     "convex": "^1.26.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -36,6 +45,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "dotenv": "^17.2.1",
+    "intuit-oauth": "^4.2.0"
   }
 }
