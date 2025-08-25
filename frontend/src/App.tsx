@@ -4,6 +4,7 @@ import { HomePage } from './pages/HomePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AccountsPage } from './pages/AccountsPage'
 import { TransactionsPage } from './pages/TransactionsPage'
+import { AgentBuilderPage } from './pages/AgentBuilderPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 
@@ -18,6 +19,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="accounts" element={<AccountsPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="agent-builder" element={<AgentBuilderPage />} />
         </Route>
       </Routes>
     </div>
