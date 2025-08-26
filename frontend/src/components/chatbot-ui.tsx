@@ -15,17 +15,24 @@ export interface ChatMessage {
 
 export interface AgentResponse {
   summary: string;
+  confidence?: number;
   dataOverview: {
     totalRecords: number;
     dateRange: {
       start: number;
       end: number;
     };
+    erpSources?: Array<{
+      type: 'quickbooks' | 'sage_intacct' | 'netsuite' | 'xero';
+      status: 'active' | 'failed' | 'pending' | 'disabled';
+      lastSync?: number;
+    }>;
     keyMetrics: Array<{
       name: string;
       value: any;
       change?: number;
       trend?: 'up' | 'down' | 'flat';
+      confidence?: number;
     }>;
   };
   patterns: Array<{
@@ -43,6 +50,19 @@ export interface AgentResponse {
     dueDate?: number;
     assignee?: string;
   }>;
+  metadata?: {
+    dataSource: 'live_erp_integration' | 'cached_data' | 'demo_data';
+    erpSystems: string[];
+    confidence: number;
+    lastDataRefresh: number;
+    grounded: boolean;
+    disclaimer: string;
+  };
+  ragInsights?: {
+    similarQueries: number;
+    contextStrength: 'high' | 'medium' | 'low';
+    historicalPatterns: string[];
+  };
 }
 
 export type OutputSegment = 'summary' | 'data' | 'patterns' | 'actions';
@@ -227,10 +247,63 @@ export function ChatbotUI({
       case 'data':
         return (
           <div className="space-y-6">
+            {/* ERP Integration Status */}
+            {response.dataOverview.erpSources && response.dataOverview.erpSources.length > 0 && (
+              <div className="card border-l-4 border-l-green-500">
+                <div className="flex items-center mb-3">
+                  <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                  <h4 className="font-medium text-gray-900">Live ERP Data Integration</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {response.dataOverview.erpSources.map((source, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className={clsx(
+                          'w-2 h-2 rounded-full mr-2',
+                          source.status === 'active' ? 'bg-green-500' :
+                          source.status === 'failed' ? 'bg-red-500' :
+                          source.status === 'pending' ? 'bg-yellow-500' :
+                          'bg-gray-400'
+                        )}></div>
+                        <span className="text-sm font-medium capitalize">
+                          {source.type.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <span className={clsx(
+                        'text-xs px-2 py-1 rounded-full',
+                        source.status === 'active' ? 'bg-green-100 text-green-800' :
+                        source.status === 'failed' ? 'bg-red-100 text-red-800' :
+                        source.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      )}>
+                        {source.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {response.metadata?.lastDataRefresh && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Last sync: {new Date(response.metadata.lastDataRefresh).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {response.dataOverview.keyMetrics.map((metric, idx) => (
                 <div key={idx} className="card p-4">
-                  <h4 className="text-sm font-medium text-gray-500 mb-2">{metric.name}</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-gray-500">{metric.name}</h4>
+                    {metric.confidence && (
+                      <span className={clsx(
+                        'text-xs px-2 py-1 rounded-full',
+                        getConfidenceColor(metric.confidence)
+                      )}>
+                        {Math.round(metric.confidence * 100)}%
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-bold text-gray-900">
                       {formatValue(metric.value)}
@@ -252,19 +325,67 @@ export function ChatbotUI({
                 </div>
               ))}
             </div>
-            <div className="card">
-              <h4 className="font-medium text-gray-900 mb-3">Data Range</h4>
-              <div className="text-sm text-gray-600">
-                <p>
-                  <span className="font-medium">Period:</span> {' '}
-                  {formatDate(response.dataOverview.dateRange.start)} - {' '}
-                  {formatDate(response.dataOverview.dateRange.end)}
-                </p>
-                <p className="mt-1">
-                  <span className="font-medium">Records:</span> {' '}
-                  {response.dataOverview.totalRecords.toLocaleString()}
-                </p>
+
+            {/* Data Range and Metadata */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="card">
+                <h4 className="font-medium text-gray-900 mb-3">Data Range</h4>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>
+                    <span className="font-medium">Period:</span> {' '}
+                    {formatDate(response.dataOverview.dateRange.start)} - {' '}
+                    {formatDate(response.dataOverview.dateRange.end)}
+                  </p>
+                  <p>
+                    <span className="font-medium">Records:</span> {' '}
+                    {response.dataOverview.totalRecords.toLocaleString()}
+                  </p>
+                  {response.metadata?.dataSource && (
+                    <p>
+                      <span className="font-medium">Source:</span> {' '}
+                      <span className={clsx(
+                        'px-2 py-1 rounded-full text-xs',
+                        response.metadata.dataSource === 'live_erp_integration' ? 'bg-green-100 text-green-800' :
+                        response.metadata.dataSource === 'cached_data' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      )}>
+                        {response.metadata.dataSource.replace(/_/g, ' ')}
+                      </span>
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {response.metadata && (
+                <div className="card">
+                  <h4 className="font-medium text-gray-900 mb-3">Analysis Quality</h4>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span>Overall Confidence:</span>
+                      <span className={clsx('font-medium', getConfidenceColor(response.metadata.confidence))}>
+                        {Math.round(response.metadata.confidence * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Data Freshness:</span>
+                      <span className={clsx(
+                        'text-xs px-2 py-1 rounded-full',
+                        response.metadata.grounded ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      )}>
+                        {response.metadata.grounded ? 'Live' : 'Cached'}
+                      </span>
+                    </div>
+                    {response.ragInsights && (
+                      <div className="flex items-center justify-between">
+                        <span>Historical Context:</span>
+                        <span className="font-medium">
+                          {response.ragInsights.similarQueries} queries
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -478,6 +599,31 @@ export function ChatbotUI({
             {/* Segment Content */}
             <div className="flex-1 overflow-y-auto p-4">
               {renderSegmentContent(getLatestResponse()!)}
+              
+              {/* AI Disclaimer Footer */}
+              {getLatestResponse()?.metadata && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                      </div>
+                      <div className="ml-2 text-sm">
+                        <p className="text-yellow-800 font-medium mb-1">AI-Generated Analysis</p>
+                        <p className="text-yellow-700">
+                          {getLatestResponse()?.metadata?.disclaimer || 
+                           'AI-generated analysis based on live ERP data—please review all recommendations'}
+                        </p>
+                        {getLatestResponse()?.metadata?.erpSystems && getLatestResponse()?.metadata?.erpSystems.length > 0 && (
+                          <p className="text-yellow-600 text-xs mt-1">
+                            Data sources: {getLatestResponse()?.metadata?.erpSystems.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

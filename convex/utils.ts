@@ -189,38 +189,79 @@ export function fuzzyMatchScore(str1: string, str2: string): number {
 }
 
 /**
- * Find best matching accounts for reconciliation
+ * Enhanced account matching with hierarchical fuzzy reconciliation
+ * Supports 90% auto-merge threshold as specified in requirements
  */
 export function findBestAccountMatches(
-  sourceAccounts: { code: string; name: string }[],
-  targetAccounts: { code: string; name: string }[],
-  threshold = 0.7
+  sourceAccounts: { code: string; name: string; fullName?: string; type?: string }[],
+  targetAccounts: { code: string; name: string; fullName?: string; type?: string }[],
+  threshold = 0.9 // Increased to 90% threshold as per requirements
 ): Array<{
   source: { code: string; name: string };
   target: { code: string; name: string };
   score: number;
+  matchFactors: {
+    codeScore: number;
+    nameScore: number;
+    hierarchyScore: number;
+    typeScore: number;
+    normalizedScore: number;
+  };
 }> {
   const matches: Array<{
     source: { code: string; name: string };
     target: { code: string; name: string };
     score: number;
+    matchFactors: {
+      codeScore: number;
+      nameScore: number;
+      hierarchyScore: number;
+      typeScore: number;
+      normalizedScore: number;
+    };
   }> = [];
 
   sourceAccounts.forEach(source => {
-    let bestMatch: { target: { code: string; name: string }; score: number } | null = null;
+    let bestMatch: { 
+      target: { code: string; name: string }; 
+      score: number; 
+      matchFactors: any;
+    } | null = null;
 
     targetAccounts.forEach(target => {
-      // Try matching by code first
-      let score = fuzzyMatchScore(source.code, target.code);
+      // Multi-factor matching for higher accuracy
+      const codeScore = fuzzyMatchScore(normalizeAccountCode(source.code), normalizeAccountCode(target.code));
+      const nameScore = fuzzyMatchScore(source.name, target.name);
       
-      // If code match is poor, try name matching
-      if (score < 0.8) {
-        const nameScore = fuzzyMatchScore(source.name, target.name);
-        score = Math.max(score * 0.3, nameScore * 0.7); // Weight name higher if code doesn't match
-      }
+      // Hierarchical matching using fullName if available
+      const hierarchyScore = (source.fullName && target.fullName) 
+        ? fuzzyMatchScore(source.fullName, target.fullName)
+        : nameScore;
+      
+      // Account type matching
+      const typeScore = (source.type && target.type && source.type === target.type) ? 1.0 : 0.5;
+      
+      // Weighted composite score with emphasis on code and hierarchy
+      const compositeScore = (
+        codeScore * 0.35 +        // Code match weight
+        nameScore * 0.25 +        // Name match weight  
+        hierarchyScore * 0.30 +   // Hierarchy path weight
+        typeScore * 0.10          // Type match weight
+      );
 
-      if (score >= threshold && (!bestMatch || score > bestMatch.score)) {
-        bestMatch = { target, score };
+      // Normalize for CSV hierarchy patterns like 'Job Expenses:Job Materials:Decks and Patios'
+      const normalizedScore = enhanceHierarchicalMatching(source, target, compositeScore);
+
+      const matchFactors = {
+        codeScore,
+        nameScore,
+        hierarchyScore,
+        typeScore,
+        normalizedScore,
+      };
+
+      if (normalizedScore >= threshold && (!bestMatch || normalizedScore > bestMatch.score)) {
+        bestMatch = { target, score: normalizedScore, matchFactors };
       }
     });
 
@@ -229,11 +270,56 @@ export function findBestAccountMatches(
         source,
         target: bestMatch.target,
         score: bestMatch.score,
+        matchFactors: bestMatch.matchFactors,
       });
     }
   });
 
   return matches.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Normalize account codes for better matching (handles patterns like 'ACC-001' ↔ 'ACC001')
+ */
+export function normalizeAccountCode(code: string): string {
+  return code
+    .toLowerCase()
+    .replace(/[-_\s\.]/g, '')  // Remove separators
+    .replace(/^0+/, '')        // Remove leading zeros
+    .trim();
+}
+
+/**
+ * Enhanced hierarchical matching for CSV hierarchy patterns
+ */
+function enhanceHierarchicalMatching(
+  source: { code: string; name: string; fullName?: string },
+  target: { code: string; name: string; fullName?: string },
+  baseScore: number
+): number {
+  if (!source.fullName || !target.fullName) {
+    return baseScore;
+  }
+
+  // Parse hierarchical names
+  const sourceLevels = source.fullName.split(':').map(level => level.trim());
+  const targetLevels = target.fullName.split(':').map(level => level.trim());
+
+  // Bonus for matching hierarchy depth
+  const depthBonus = sourceLevels.length === targetLevels.length ? 0.05 : 0;
+
+  // Bonus for matching parent levels
+  let parentMatchScore = 0;
+  const minLevels = Math.min(sourceLevels.length, targetLevels.length);
+  
+  for (let i = 0; i < minLevels - 1; i++) {
+    const levelMatch = fuzzyMatchScore(sourceLevels[i], targetLevels[i]);
+    parentMatchScore += levelMatch;
+  }
+  
+  const avgParentMatch = minLevels > 1 ? (parentMatchScore / (minLevels - 1)) * 0.1 : 0;
+
+  return Math.min(1.0, baseScore + depthBonus + avgParentMatch);
 }
 
 /**
