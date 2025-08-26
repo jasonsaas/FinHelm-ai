@@ -1,0 +1,6 @@
+id,userId,name,type,balance,currency,createdAt,updatedAt
+acc_001,user_123,Primary Checking,checking,7731.24,USD,2024-01-01T00:00:00Z,2024-01-27T12:30:00Z
+acc_002,user_123,Emergency Savings,savings,21500.85,USD,2024-01-01T00:00:00Z,2024-01-27T10:15:00Z
+acc_003,user_123,Main Credit Card,credit,-3089.99,USD,2024-01-01T00:00:00Z,2024-01-22T16:45:00Z
+acc_004,user_456,Business Checking,checking,15000.00,USD,2024-01-01T00:00:00Z,2024-01-15T09:20:00Z
+acc_005,user_456,Business Savings,savings,45000.00,USD,2024-01-01T00:00:00Z,2024-01-20T14:10:00Z

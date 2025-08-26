@@ -6,6 +6,7 @@ import { AccountsPage } from './pages/AccountsPage'
 import { TransactionsPage } from './pages/TransactionsPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ChatbotPage } from './pages/ChatbotPage'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="accounts" element={<AccountsPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="chat" element={<ChatbotPage />} />
         </Route>
       </Routes>
     </div>

@@ -21,9 +21,23 @@ export interface AccountHierarchy {
 }
 
 /**
+ * Account data interface for type safety
+ */
+export interface AccountData {
+  _id: string;
+  code: string;
+  name: string;
+  fullName: string;
+  type: string;
+  level: number;
+  balance?: number;
+  parentId?: string;
+}
+
+/**
  * Build account hierarchy tree from flat account list
  */
-export function buildAccountHierarchy(accounts: any[]): AccountHierarchy[] {
+export function buildAccountHierarchy(accounts: AccountData[]): AccountHierarchy[] {
   const accountMap = new Map<string, AccountHierarchy>();
   const rootAccounts: AccountHierarchy[] = [];
 
@@ -36,7 +50,7 @@ export function buildAccountHierarchy(accounts: any[]): AccountHierarchy[] {
       fullName: account.fullName,
       type: account.type,
       level: account.level,
-      balance: account.balance || 0,
+      balance: account.balance ?? 0, // Nullish coalescing for strict null checks
       children: [],
     });
   });
@@ -140,19 +154,25 @@ export function fuzzyMatchScore(str1: string, str2: string): number {
 
   if (s1 === s2) return 1.0;
 
-  // Levenshtein distance
-  const matrix: number[][] = [];
+  // Levenshtein distance - optimized matrix initialization
   const len1 = s1.length;
   const len2 = s2.length;
-
-  for (let i = 0; i <= len1; i++) {
-    matrix[i] = [i];
-  }
-
+  
+  // Pre-allocate the entire matrix with proper dimensions
+  const matrix: number[][] = Array(len1 + 1)
+    .fill(null)
+    .map((_, i) => {
+      const row = Array(len2 + 1).fill(0);
+      row[0] = i; // Initialize first column
+      return row;
+    });
+  
+  // Initialize first row
   for (let j = 0; j <= len2; j++) {
     matrix[0]![j] = j;
   }
 
+  // Fill the matrix
   for (let i = 1; i <= len1; i++) {
     for (let j = 1; j <= len2; j++) {
       const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
@@ -227,6 +247,27 @@ export function normalizeAmount(amount: number, fromCurrency: string, toCurrency
 }
 
 /**
+ * Transaction interface for type safety
+ */
+export interface Transaction {
+  id: string;
+  accountCode: string;
+  amount: number;
+  transactionDate: number;
+  type: string;
+}
+
+/**
+ * Historical data interface for type safety
+ */
+export interface HistoricalData {
+  accountCode: string;
+  avgAmount: number;
+  stdDev: number;
+  frequency: number;
+}
+
+/**
  * Detect potential anomalies in transaction data
  */
 export interface AnomalyDetectionResult {
@@ -237,54 +278,83 @@ export interface AnomalyDetectionResult {
   confidence: number;
 }
 
+/**
+ * Optimized transaction anomaly detection
+ */
 export function detectTransactionAnomalies(
-  transactions: Array<{
-    id: string;
-    accountCode: string;
-    amount: number;
-    transactionDate: number;
-    type: string;
-  }>,
-  historicalData?: Array<{
-    accountCode: string;
-    avgAmount: number;
-    stdDev: number;
-    frequency: number;
-  }>
+  transactions: Transaction[],
+  historicalData?: HistoricalData[]
 ): AnomalyDetectionResult[] {
   const anomalies: AnomalyDetectionResult[] = [];
 
   // Group transactions by account for pattern analysis
-  const accountGroups = new Map<string, typeof transactions>();
+  const accountGroups = new Map<string, Transaction[]>();
   
-  transactions.forEach(txn => {
+  // Pre-allocate arrays for better performance
+  for (const txn of transactions) {
     if (!accountGroups.has(txn.accountCode)) {
       accountGroups.set(txn.accountCode, []);
     }
-    accountGroups.get(txn.accountCode)!.push(txn);
-  });
+    const group = accountGroups.get(txn.accountCode);
+    if (group) {
+      group.push(txn);
+    }
+  }
 
   // Detect amount anomalies
   accountGroups.forEach((txns, accountCode) => {
-    const amounts = txns.map(t => Math.abs(t.amount));
-    const mean = amounts.reduce((sum, amt) => sum + amt, 0) / amounts.length;
-    const stdDev = Math.sqrt(
-      amounts.reduce((sum, amt) => sum + Math.pow(amt - mean, 2), 0) / amounts.length
-    );
-
-    txns.forEach(txn => {
-      const zScore = Math.abs((Math.abs(txn.amount) - mean) / (stdDev || 1));
+    // Use historical data if available
+    const historicalStats = historicalData?.find(h => h.accountCode === accountCode);
+    
+    // Calculate statistics only if historical data is not available
+    if (!historicalStats) {
+      const amounts = txns.map(t => Math.abs(t.amount));
       
-      if (zScore > 3) { // More than 3 standard deviations
-        anomalies.push({
-          transactionId: txn.id,
-          anomalyType: 'amount',
-          severity: zScore > 5 ? 'high' : 'medium',
-          description: `Transaction amount ${txn.amount} is ${zScore.toFixed(1)} standard deviations from normal for account ${accountCode}`,
-          confidence: Math.min(0.95, zScore / 5),
-        });
+      // Calculate mean in a single pass
+      let sum = 0;
+      for (const amount of amounts) {
+        sum += amount;
       }
-    });
+      const mean = sum / amounts.length;
+      
+      // Calculate standard deviation in a single pass
+      let sumSquaredDiff = 0;
+      for (const amount of amounts) {
+        sumSquaredDiff += Math.pow(amount - mean, 2);
+      }
+      const stdDev = Math.sqrt(sumSquaredDiff / amounts.length) || 1; // Avoid division by zero
+      
+      // Check each transaction for anomalies
+      for (const txn of txns) {
+        const zScore = Math.abs((Math.abs(txn.amount) - mean) / stdDev);
+        
+        if (zScore > 3) { // More than 3 standard deviations
+          anomalies.push({
+            transactionId: txn.id,
+            anomalyType: 'amount',
+            severity: zScore > 5 ? 'high' : 'medium',
+            description: `Transaction amount ${txn.amount} is ${zScore.toFixed(1)} standard deviations from normal for account ${accountCode}`,
+            confidence: Math.min(0.95, zScore / 5),
+          });
+        }
+      }
+    } else {
+      // Use historical data for comparison
+      for (const txn of txns) {
+        const zScore = Math.abs((Math.abs(txn.amount) - historicalStats.avgAmount) / 
+                               (historicalStats.stdDev || 1)); // Avoid division by zero
+        
+        if (zScore > 3) {
+          anomalies.push({
+            transactionId: txn.id,
+            anomalyType: 'amount',
+            severity: zScore > 5 ? 'high' : 'medium',
+            description: `Transaction amount ${txn.amount} is ${zScore.toFixed(1)} standard deviations from historical average for account ${accountCode}`,
+            confidence: Math.min(0.95, zScore / 5),
+          });
+        }
+      }
+    }
   });
 
   return anomalies.sort((a, b) => b.confidence - a.confidence);
@@ -301,7 +371,10 @@ export interface FinancialRatios {
   netMargin: number;
 }
 
-export function calculateFinancialRatios(balances: {
+/**
+ * Financial balances interface for type safety
+ */
+export interface FinancialBalances {
   currentAssets: number;
   currentLiabilities: number;
   totalDebt: number;
@@ -309,7 +382,12 @@ export function calculateFinancialRatios(balances: {
   revenue: number;
   costOfGoodsSold: number;
   netIncome: number;
-}): FinancialRatios {
+}
+
+/**
+ * Calculate financial ratios with null safety
+ */
+export function calculateFinancialRatios(balances: FinancialBalances): FinancialRatios {
   return {
     currentRatio: balances.currentLiabilities !== 0 ? balances.currentAssets / balances.currentLiabilities : 0,
     quickRatio: balances.currentLiabilities !== 0 ? (balances.currentAssets * 0.8) / balances.currentLiabilities : 0, // Simplified
