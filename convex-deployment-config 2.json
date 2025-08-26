@@ -1,0 +1,47 @@
+{
+  "expectedTables": [
+    "users",
+    "organizations", 
+    "accounts",
+    "transactions",
+    "agents",
+    "erpConnections",
+    "syncJobs", 
+    "auditLogs",
+    "agentExecutions",
+    "reconciliations",
+    "predictions"
+  ],
+  "testCommands": [
+    "node deploy-test-simple.js"
+  ],
+  "gitFiles": [
+    ".env.example",
+    "DEPLOYMENT.md", 
+    "README.md",
+    "convex-deployment-config.json"
+  ],
+  "timeouts": {
+    "deployment": 120000,
+    "authentication": 300000,
+    "schemaValidation": 30000
+  },
+  "criticalTables": [
+    "users",
+    "organizations", 
+    "accounts",
+    "agents"
+  ],
+  "confidenceThreshold": 80.0,
+  "retryAttempts": {
+    "deployment": 2,
+    "schemaValidation": 3,
+    "gitOperations": 1
+  },
+  "features": {
+    "autoRetry": true,
+    "verboseLogging": false,
+    "backupEnv": true,
+    "skipGitOperations": false
+  }
+}
