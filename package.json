@@ -11,6 +11,16 @@
   "scripts": {
     "dev": "npx ts-node src/index.ts",
     "build": "tsc",
+    "deploy": "npx ts-node deploy-convex.ts",
+    "deploy:debug": "DEBUG=1 npx ts-node deploy-convex.ts",
+    "deploy:verify": "npx ts-node deploy-and-verify.ts",
+    "deploy:verify:debug": "DEBUG=1 npx ts-node deploy-and-verify.ts",
+    "deploy:test": "node deploy-test-simple.js",
+    "convex:init": "npx convex init",
+    "convex:dev": "npx convex dev",
+    "convex:deploy": "npx convex deploy",
+    "convex:dashboard": "npx convex dashboard",
+    "convex:status": "npx convex status",
     "dev:workspaces": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
@@ -18,7 +28,9 @@
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces",
-    "clean": "npm run clean --workspaces"
+    "clean": "npm run clean --workspaces",
+    "integration:verify": "npx ts-node finhelm-integration-run-verify.ts",
+    "integration:debug": "DEBUG=1 npx ts-node finhelm-integration-run-verify.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
@@ -36,6 +48,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.1"
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
+    "openai": "^5.15.0"
   }
 }

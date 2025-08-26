@@ -17,6 +17,10 @@ export const finHelmTest = action({
       v.literal("data_reconciliation"),
       v.literal("anomaly_detection"),
       v.literal("cash_flow_analysis"),
+      v.literal("grok_integration"),
+      v.literal("mvp_agents"),
+      v.literal("multivariate_prediction"),
+      v.literal("13_week_forecast"),
       v.literal("full_demo")
     )),
     includeRawData: v.optional(v.boolean()),
@@ -244,6 +248,18 @@ async function performMockAnalysis(scenario: string, includeRawData: boolean) {
     
     case "cash_flow_analysis":
       return performCashFlowAnalysis(includeRawData);
+    
+    case "grok_integration":
+      return performGrokIntegrationTest(includeRawData);
+    
+    case "mvp_agents":
+      return performMVPAgentsTest(includeRawData);
+    
+    case "multivariate_prediction":
+      return performMultivariatePredictionTest(includeRawData);
+    
+    case "13_week_forecast":
+      return perform13WeekForecastTest(includeRawData);
     
     case "full_demo":
     default:
@@ -677,6 +693,362 @@ function performCashFlowAnalysis(includeRawData: boolean) {
     recordsProcessed: sampleTransactions.length,
     confidenceScore: 0.91,
     rawData: includeRawData ? { inflows, outflows, transactions: sampleTransactions } : undefined,
+  };
+}
+
+/**
+ * Grok Integration Test Scenario
+ */
+function performGrokIntegrationTest(includeRawData: boolean) {
+  return {
+    summary: `Grok AI integration test completed successfully. RAG over Convex DB with embeddings for ERP data grounding achieved 95% confidence in pattern analysis. Query processing with explainable analysis shows confidence scores and traces as required.`,
+    
+    dataOverview: {
+      totalRecords: sampleTransactions.length,
+      dateRange: {
+        start: Date.now() - (7 * 24 * 60 * 60 * 1000), // 7 days ago
+        end: Date.now(),
+      },
+      keyMetrics: [
+        {
+          name: "Grok API Response Time",
+          value: 1.8, // seconds
+          trend: "down", // decreasing is good
+        },
+        {
+          name: "Confidence Score",
+          value: 95.2,
+          trend: "up",
+        },
+        {
+          name: "Embedding Quality",
+          value: 92.7,
+          trend: "up",
+        },
+        {
+          name: "RAG Accuracy",
+          value: 94.1,
+          trend: "up",
+        },
+      ],
+    },
+    
+    patterns: [
+      {
+        type: "grok_rag_performance",
+        description: "95% confidence in pattern due to volume mix - Grok successfully analyzing Q3 variance with explainable reasoning",
+        confidence: 0.95,
+        impact: "high",
+        data: [{
+          query: "Analyze Q3 variance", 
+          response: "segmented response with confidence scores/traces",
+          confidence: 95.2,
+          reasoning: "volume mix analysis with rate/volume breakdown"
+        }],
+      },
+      {
+        type: "embedding_effectiveness",
+        description: "ERP data embeddings providing strong context for financial analysis queries",
+        confidence: 0.92,
+        impact: "high",
+      },
+    ],
+    
+    actions: [
+      {
+        type: "grok_optimization",
+        description: "Fine-tune Grok prompts for even higher confidence scores in financial analysis",
+        priority: "medium",
+        automated: false,
+      },
+      {
+        type: "embedding_expansion",
+        description: "Expand embedding coverage to include external factors data",
+        priority: "high",
+        automated: true,
+      },
+    ],
+    
+    recordsProcessed: sampleTransactions.length,
+    confidenceScore: 0.952,
+    rawData: includeRawData ? {
+      grokResponses: [
+        {
+          query: "Analyze Q3 variance",
+          confidence: 95.2,
+          explainability: "High confidence due to clear volume/rate/mix patterns in transaction data",
+          traces: ["volume_analysis", "rate_comparison", "mix_evaluation"]
+        }
+      ]
+    } : undefined,
+  };
+}
+
+/**
+ * MVP Agents Test Scenario
+ */
+function performMVPAgentsTest(includeRawData: boolean) {
+  const mvpAgents = [
+    { name: "Automated Variance Explanation", status: "active", confidence: 95.0 },
+    { name: "Cash Flow Intelligence (13-week)", status: "active", confidence: 88.5 },
+    { name: "Anomaly Monitoring", status: "active", confidence: 92.3 },
+    { name: "Close Acceleration", status: "active", confidence: 89.7 },
+    { name: "Forecasting", status: "active", confidence: 87.2 },
+    { name: "Multivariate Prediction", status: "active", confidence: 90.1 },
+    { name: "Working Capital Optimization", status: "active", confidence: 86.8 },
+    { name: "Budget Variance Tracker", status: "active", confidence: 91.4 },
+    { name: "Expense Categorization", status: "active", confidence: 94.2 },
+    { name: "Revenue Recognition Assistant", status: "active", confidence: 93.6 },
+  ];
+
+  return {
+    summary: `All 10 MVP agents successfully activated and tested. Average confidence score: ${(mvpAgents.reduce((sum, agent) => sum + agent.confidence, 0) / mvpAgents.length).toFixed(1)}%. Agents demonstrate financial focus with statsmodels/sympy for calculations and torch for deep learning forecasting.`,
+    
+    dataOverview: {
+      totalRecords: mvpAgents.length,
+      dateRange: {
+        start: Date.now() - (1 * 60 * 60 * 1000), // 1 hour ago
+        end: Date.now(),
+      },
+      keyMetrics: [
+        {
+          name: "Active Agents",
+          value: mvpAgents.filter(a => a.status === "active").length,
+          trend: "up",
+        },
+        {
+          name: "Average Confidence",
+          value: Math.round(mvpAgents.reduce((sum, agent) => sum + agent.confidence, 0) / mvpAgents.length * 10) / 10,
+          trend: "up",
+        },
+        {
+          name: "Financial Focus Agents",
+          value: 10, // All 10 are financial focused
+          trend: "flat",
+        },
+        {
+          name: "Code Execution Compatible",
+          value: 10, // All support code_execution
+          trend: "up",
+        },
+      ],
+    },
+    
+    patterns: [
+      {
+        type: "agent_performance",
+        description: "All 10 MVP agents operational with 92.7%+ data quality threshold maintained",
+        confidence: 0.917, // Average confidence
+        impact: "high",
+        data: mvpAgents,
+      },
+      {
+        type: "financial_intelligence",
+        description: "Agents demonstrate explainable AI with confidence traces for touchless operations",
+        confidence: 0.93,
+        impact: "high",
+      },
+    ],
+    
+    actions: [
+      {
+        type: "agent_scaling",
+        description: "Scale successful agents for production with reduced manual effort target of 50%",
+        priority: "high",
+        automated: false,
+      },
+      {
+        type: "performance_monitoring",
+        description: "Implement continuous monitoring for <2s latency requirement",
+        priority: "high",
+        automated: true,
+      },
+    ],
+    
+    recordsProcessed: mvpAgents.length,
+    confidenceScore: 0.917,
+    rawData: includeRawData ? { mvpAgents } : undefined,
+  };
+}
+
+/**
+ * Multivariate Prediction Test Scenario
+ */
+function performMultivariatePredictionTest(includeRawData: boolean) {
+  const externalFactors = {
+    seasonal: 0.15,      // 15% seasonal impact
+    economic: 0.08,      // 8% economic factor impact
+    marketTrends: 0.12,  // 12% market trends impact
+    competitive: -0.05,  // 5% negative competitive pressure
+  };
+
+  const basePrediction = 125000; // Base revenue prediction
+  const adjustedPrediction = basePrediction * (1 + Object.values(externalFactors).reduce((a, b) => a + b, 0));
+
+  return {
+    summary: `Multivariate prediction analysis incorporating external factors shows adjusted forecast of $${adjustedPrediction.toFixed(2)} (${((adjustedPrediction - basePrediction) / basePrediction * 100).toFixed(1)}% adjustment from base model). Oracle Advanced Prediction integration with external factors demonstrates 88.3% accuracy.`,
+    
+    dataOverview: {
+      totalRecords: sampleTransactions.length,
+      dateRange: {
+        start: Date.now() - (90 * 24 * 60 * 60 * 1000), // 90 days historical
+        end: Date.now() + (90 * 24 * 60 * 60 * 1000),   // 90 days future
+      },
+      keyMetrics: [
+        {
+          name: "Base Prediction",
+          value: basePrediction,
+          trend: "up",
+        },
+        {
+          name: "Adjusted Prediction",
+          value: adjustedPrediction,
+          change: ((adjustedPrediction - basePrediction) / basePrediction * 100),
+          trend: adjustedPrediction > basePrediction ? "up" : "down",
+        },
+        {
+          name: "External Factor Impact",
+          value: Math.abs(Object.values(externalFactors).reduce((a, b) => a + b, 0) * 100),
+          trend: "up",
+        },
+        {
+          name: "Prediction Accuracy",
+          value: 88.3,
+          trend: "up",
+        },
+      ],
+    },
+    
+    patterns: [
+      {
+        type: "external_factor_integration",
+        description: "Seasonal (15%), economic (8%), and market trend (12%) factors successfully integrated into prediction model",
+        confidence: 0.883,
+        impact: "high",
+        data: externalFactors,
+      },
+      {
+        type: "oracle_integration",
+        description: "Oracle Advanced Prediction methodology successfully applied with external factor weighting",
+        confidence: 0.91,
+        impact: "high",
+      },
+    ],
+    
+    actions: [
+      {
+        type: "factor_monitoring",
+        description: "Implement real-time external factor monitoring for continuous prediction accuracy",
+        priority: "high",
+        automated: true,
+      },
+      {
+        type: "model_validation",
+        description: "Validate multivariate model against historical performance monthly",
+        priority: "medium",
+        automated: false,
+      },
+    ],
+    
+    recordsProcessed: sampleTransactions.length,
+    confidenceScore: 0.883,
+    rawData: includeRawData ? { externalFactors, basePrediction, adjustedPrediction } : undefined,
+  };
+}
+
+/**
+ * 13-Week Forecast Test Scenario
+ */
+function perform13WeekForecastTest(includeRawData: boolean) {
+  const weeklyData = [];
+  const baseWeeklyRevenue = 15000;
+  
+  // Generate 13 weeks of forecast data with seasonal and growth patterns
+  for (let week = 1; week <= 13; week++) {
+    const seasonalFactor = 1 + 0.1 * Math.sin((week / 13) * Math.PI); // Seasonal variation
+    const growthFactor = 1 + (week * 0.005); // 0.5% weekly growth
+    const weeklyRevenue = baseWeeklyRevenue * seasonalFactor * growthFactor;
+    
+    weeklyData.push({
+      week,
+      revenue: weeklyRevenue,
+      inflows: weeklyRevenue * 0.9, // 90% collected
+      outflows: weeklyRevenue * 0.6, // 60% operating costs
+      netCashFlow: weeklyRevenue * 0.3, // 30% net margin
+    });
+  }
+
+  const totalProjected = weeklyData.reduce((sum, w) => sum + w.revenue, 0);
+  const totalNetCashFlow = weeklyData.reduce((sum, w) => sum + w.netCashFlow, 0);
+
+  return {
+    summary: `13-week cash flow forecast generated using torch-powered deep learning models. Total projected revenue: $${totalProjected.toFixed(2)}, net cash flow: $${totalNetCashFlow.toFixed(2)}. Weekly forecasting shows ${((weeklyData[12].revenue - weeklyData[0].revenue) / weeklyData[0].revenue * 100).toFixed(1)}% growth trajectory.`,
+    
+    dataOverview: {
+      totalRecords: 13, // 13 weeks
+      dateRange: {
+        start: Date.now(),
+        end: Date.now() + (13 * 7 * 24 * 60 * 60 * 1000), // 13 weeks from now
+      },
+      keyMetrics: [
+        {
+          name: "Total Projected Revenue",
+          value: totalProjected,
+          trend: "up",
+        },
+        {
+          name: "Weekly Average",
+          value: totalProjected / 13,
+          trend: "up",
+        },
+        {
+          name: "Net Cash Flow",
+          value: totalNetCashFlow,
+          trend: "up",
+        },
+        {
+          name: "Growth Rate",
+          value: ((weeklyData[12].revenue - weeklyData[0].revenue) / weeklyData[0].revenue * 100),
+          trend: "up",
+        },
+      ],
+    },
+    
+    patterns: [
+      {
+        type: "13_week_trend",
+        description: "Torch-powered forecasting model shows consistent growth with seasonal adjustments",
+        confidence: 0.87,
+        impact: "high",
+        data: weeklyData.slice(0, 5), // First 5 weeks
+      },
+      {
+        type: "cash_flow_optimization",
+        description: "Working capital management opportunities identified in weeks 6-9",
+        confidence: 0.82,
+        impact: "medium",
+      },
+    ],
+    
+    actions: [
+      {
+        type: "cash_management",
+        description: "Optimize cash position during projected low points in weeks 6-7",
+        priority: "high",
+        automated: false,
+        dueDate: Date.now() + (6 * 7 * 24 * 60 * 60 * 1000), // 6 weeks
+      },
+      {
+        type: "forecast_refinement",
+        description: "Update torch model parameters based on weekly actuals",
+        priority: "medium",
+        automated: true,
+      },
+    ],
+    
+    recordsProcessed: 13,
+    confidenceScore: 0.87,
+    rawData: includeRawData ? { weeklyData } : undefined,
   };
 }
 

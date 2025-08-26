@@ -232,13 +232,21 @@ export default defineSchema({
       v.literal("custom")
     ),
     type: v.union(
-      v.literal("variance_explanation"),
-      v.literal("forecasting"),
-      v.literal("cash_flow_intelligence"),
+      // Core 10 MVP Agents for Financial Intelligence
+      v.literal("variance_explanation"),            // 1. Automated Variance Explanation 
+      v.literal("cash_flow_intelligence"),          // 2. Cash Flow Intelligence (13-week forecasting)
+      v.literal("anomaly_monitoring"),              // 3. Anomaly Monitoring with subledger details
+      v.literal("close_acceleration"),              // 4. Close Acceleration with auto-reconciliation
+      v.literal("forecasting"),                     // 5. Forecasting with multivariate prediction
+      v.literal("multivariate_prediction"),         // 6. Multivariate Prediction with external factors
+      v.literal("working_capital_optimization"),    // 7. Working Capital Optimization
+      v.literal("budget_variance_tracker"),         // 8. Budget Variance Tracker
+      v.literal("expense_categorization"),          // 9. Expense Categorization
+      v.literal("revenue_recognition_assistant"),   // 10. Revenue Recognition Assistant
+      
+      // Additional specialized agents
       v.literal("revenue_recognition"),
-      v.literal("close_acceleration"),
       v.literal("board_presentation"),
-      v.literal("anomaly_monitoring"),
       v.literal("inventory_optimization"),
       v.literal("demand_forecasting"),
       v.literal("vendor_risk"),
@@ -256,7 +264,6 @@ export default defineSchema({
       v.literal("workflow_automation"),
       v.literal("change_management_risk"),
       v.literal("access_review"),
-      v.literal("multivariate_prediction"),
       v.literal("custom")
     ),
     isActive: v.boolean(),
@@ -437,4 +444,80 @@ export default defineSchema({
     .index("by_action", ["action"])
     .index("by_resource", ["resourceType"])
     .index("by_timestamp", ["timestamp"]),
+
+  // OAuth State Management
+  oauthStates: defineTable({
+    state: v.string(),
+    codeVerifier: v.string(),
+    userId: v.optional(v.id("users")),
+    organizationId: v.optional(v.id("organizations")),
+    provider: v.union(v.literal("sage_intacct"), v.literal("quickbooks")),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_state", ["state"])
+    .index("by_expires", ["expiresAt"])
+    .index("by_provider", ["provider"]),
+
+  // Data Reconciliation Jobs
+  reconciliationJobs: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+    progress: v.number(),
+    sourceData: v.array(v.object({
+      id: v.string(),
+      code: v.string(),
+      name: v.string(),
+      type: v.string(),
+      amount: v.number(),
+      date: v.string(),
+      reference: v.optional(v.string()),
+    })),
+    targetData: v.array(v.object({
+      id: v.string(),
+      code: v.string(),
+      name: v.string(),
+      type: v.string(),
+      amount: v.number(),
+      date: v.string(),
+      reference: v.optional(v.string()),
+    })),
+    results: v.optional(v.object({
+      totalMatches: v.number(),
+      exactMatches: v.number(),
+      fuzzyMatches: v.number(),
+      unmatched: v.number(),
+      confidence: v.number(),
+      matches: v.array(v.object({
+        sourceId: v.string(),
+        targetId: v.string(),
+        confidence: v.number(),
+        type: v.union(v.literal("exact"), v.literal("fuzzy")),
+        factors: v.object({
+          amountScore: v.number(),
+          descriptionScore: v.number(),
+          dateScore: v.number(),
+          referenceScore: v.number(),
+          accountScore: v.number(),
+        }),
+      })),
+    })),
+    error: v.optional(v.string()),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
 });

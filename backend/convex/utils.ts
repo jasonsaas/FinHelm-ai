@@ -150,22 +150,22 @@ export function fuzzyMatchScore(str1: string, str2: string): number {
   }
 
   for (let j = 0; j <= len2; j++) {
-    matrix[0][j] = j;
+    matrix[0]![j] = j;
   }
 
   for (let i = 1; i <= len1; i++) {
     for (let j = 1; j <= len2; j++) {
       const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1,      // deletion
-        matrix[i][j - 1] + 1,      // insertion
-        matrix[i - 1][j - 1] + cost // substitution
+      matrix[i]![j] = Math.min(
+        matrix[i - 1]![j]! + 1,      // deletion
+        matrix[i]![j - 1]! + 1,      // insertion
+        matrix[i - 1]![j - 1]! + cost // substitution
       );
     }
   }
 
   const maxLen = Math.max(len1, len2);
-  return maxLen === 0 ? 1.0 : (maxLen - matrix[len1][len2]) / maxLen;
+  return maxLen === 0 ? 1.0 : (maxLen - matrix[len1]![len2]!) / maxLen;
 }
 
 /**
@@ -186,10 +186,10 @@ export function findBestAccountMatches(
     score: number;
   }> = [];
 
-  sourceAccounts.forEach(source => {
+  for (const source of sourceAccounts) {
     let bestMatch: { target: { code: string; name: string }; score: number } | null = null;
 
-    targetAccounts.forEach(target => {
+    for (const target of targetAccounts) {
       // Try matching by code first
       let score = fuzzyMatchScore(source.code, target.code);
       
@@ -202,7 +202,7 @@ export function findBestAccountMatches(
       if (score >= threshold && (!bestMatch || score > bestMatch.score)) {
         bestMatch = { target, score };
       }
-    });
+    }
 
     if (bestMatch) {
       matches.push({
@@ -211,7 +211,7 @@ export function findBestAccountMatches(
         score: bestMatch.score,
       });
     }
-  });
+  }
 
   return matches.sort((a, b) => b.score - a.score);
 }
