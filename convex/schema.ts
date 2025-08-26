@@ -42,11 +42,29 @@ export default defineSchema({
       v.literal("netsuite"),
       v.literal("xero")
     ),
+    vertical: v.optional(v.union(
+      v.literal("franchise"),
+      v.literal("retail"),
+      v.literal("family_office"),
+      v.literal("healthcare"),
+      v.literal("manufacturing"),
+      v.literal("professional_services"),
+      v.literal("non_profit"),
+      v.literal("construction"),
+      v.literal("hospitality"),
+      v.literal("general")
+    )),
     erpSettings: v.object({
       companyId: v.optional(v.string()),
       baseUrl: v.optional(v.string()),
       apiVersion: v.optional(v.string()),
       features: v.array(v.string()),
+      multiLocationEnabled: v.optional(v.boolean()),
+      consolidationLevel: v.optional(v.union(
+        v.literal("entity"),
+        v.literal("location"),
+        v.literal("department")
+      )),
     }),
     isActive: v.boolean(),
     subscriptionTier: v.union(
@@ -60,6 +78,7 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_erp_type", ["erpType"])
+    .index("by_vertical", ["vertical"])
     .index("by_subscription", ["subscriptionTier"]),
 
   // User-Organization relationships
@@ -216,6 +235,7 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_customer", ["customerId"])
     .index("by_vendor", ["vendorId"])
+    .index("by_location", ["locationId"])
     .index("by_reconciliation", ["reconciliationStatus"]),
 
   // AI Agents (Pre-built and Custom)
