@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd finhelm-frontend && npm run build",
+  "outputDirectory": "finhelm-frontend/.next",
+  "installCommand": "cd finhelm-frontend && npm install",
+  "framework": "nextjs"
+}
