@@ -1,0 +1,11 @@
+[build]
+  command = "cd finhelm-frontend && npm ci && npm run build"
+  publish = "finhelm-frontend/out"
+  base = "."
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[dev]
+  command = "cd finhelm-frontend && npm run dev"
+  port = 3000
