@@ -1,0 +1,154 @@
+{
+  "folders": [
+    {
+      "name": "FinHelm.ai Backend",
+      "path": "."
+    },
+    {
+      "name": "FinHelm.ai Frontend (Modern)",
+      "path": "./finhelm-ai-navigator"
+    }
+  ],
+  "settings": {
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    "typescript.suggest.autoImports": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/__pycache__": true,
+      "**/*.pyc": true
+    },
+    "python.defaultInterpreterPath": "python3",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.sortImports.args": ["--profile", "black"],
+    "emmet.includeLanguages": {
+      "typescript": "html",
+      "typescriptreact": "html"
+    },
+    "tailwindCSS.includeLanguages": {
+      "typescript": "html",
+      "typescriptreact": "html"
+    },
+    "tailwindCSS.experimental.classRegex": [
+      ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+      ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.black-formatter",
+      "ms-python.flake8",
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "ms-vscode.vscode-json",
+      "formulahendry.auto-rename-tag",
+      "christian-kohler.path-intellisense",
+      "ms-vscode.vscode-eslint"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Start Backend",
+        "type": "shell",
+        "command": "cd backend && python3 -m uvicorn main:app --reload --port 8000",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Start Frontend (Modern)",
+        "type": "shell",
+        "command": "cd finhelm-ai-navigator && npm run dev",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Start Both Servers",
+        "dependsOrder": "parallel",
+        "dependsOn": ["Start Backend", "Start Frontend (Modern)"],
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        }
+      },
+      {
+        "label": "Install Backend Dependencies",
+        "type": "shell",
+        "command": "cd backend && pip3 install -r requirements.txt",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        }
+      },
+      {
+        "label": "Install Frontend Dependencies",
+        "type": "shell",
+        "command": "cd finhelm-ai-navigator && npm install",
+        "group": "build",
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "new"
+        }
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Backend",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder}/backend/main.py",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      {
+        "name": "Debug Frontend",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/finhelm-ai-navigator/node_modules/vite/bin/vite.js",
+        "args": ["--port", "5173"],
+        "cwd": "${workspaceFolder}/finhelm-ai-navigator",
+        "console": "integratedTerminal"
+      }
+    ]
+  }
+}

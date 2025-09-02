@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinHelm AI - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">FinHelm AI Dashboard</h1>
+                    <p class="text-gray-600 mt-1">QuickBooks Integration Active</p>
+                </div>
+                <button onclick="disconnect()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    Disconnect
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="bg-white rounded-lg shadow-sm p-12 text-center">
+            <svg class="animate-spin h-12 w-12 text-green-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-600">Loading company information...</p>
+        </div>
+
+        <!-- Company Info -->
+        <div id="companyInfo" class="hidden">
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Company Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500">Company Name</p>
+                        <p id="companyName" class="text-lg font-medium text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Legal Name</p>
+                        <p id="legalName" class="text-lg font-medium text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Country</p>
+                        <p id="country" class="text-lg font-medium text-gray-900">-</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Fiscal Year Start</p>
+                        <p id="fiscalYear" class="text-lg font-medium text-gray-900">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Balances -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Account Balances</h2>
+                <div id="accountsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Accounts will be populated here -->
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+                <div id="transactionsList">
+                    <p class="text-gray-600">Loading transactions...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                <h3 class="text-red-800 font-semibold mb-2">Connection Error</h3>
+                <p class="text-red-700" id="errorText"></p>
+                <button onclick="window.location.href='/quickstart/index.html'" 
+                        class="mt-4 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    Reconnect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tokens = null;
+
+        const loadDashboard = async () => {
+            const loading = document.getElementById('loading');
+            const companyInfo = document.getElementById('companyInfo');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            try {
+                // Get tokens from localStorage
+                const storedTokens = localStorage.getItem('qb_tokens');
+                if (!storedTokens) {
+                    window.location.href = '/quickstart/index.html';
+                    return;
+                }
+                
+                tokens = JSON.parse(storedTokens);
+                
+                // Fetch company info
+                const response = await fetch('/.netlify/functions/get-company-info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        accessToken: tokens.access_token,
+                        realmId: tokens.realmId
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch company information');
+                }
+                
+                const data = await response.json();
+                
+                // Display company info
+                displayCompanyInfo(data);
+                
+                // Fetch accounts
+                await fetchAccounts();
+                
+                // Show dashboard
+                loading.classList.add('hidden');
+                companyInfo.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Dashboard error:', error);
+                loading.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+                document.getElementById('errorText').textContent = error.message;
+            }
+        };
+
+        const displayCompanyInfo = (data) => {
+            const company = data.CompanyInfo || data;
+            document.getElementById('companyName').textContent = company.CompanyName || '-';
+            document.getElementById('legalName').textContent = company.LegalName || company.CompanyName || '-';
+            document.getElementById('country').textContent = company.Country || '-';
+            document.getElementById('fiscalYear').textContent = company.FiscalYearStartMonth || 'January';
+        };
+
+        const fetchAccounts = async () => {
+            try {
+                const response = await fetch('/.netlify/functions/get-accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        accessToken: tokens.access_token,
+                        realmId: tokens.realmId
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayAccounts(data);
+                }
+            } catch (error) {
+                console.error('Error fetching accounts:', error);
+                document.getElementById('accountsGrid').innerHTML = 
+                    '<p class="text-gray-600 col-span-3">Unable to load account balances</p>';
+            }
+        };
+
+        const displayAccounts = (data) => {
+            const accounts = data.QueryResponse?.Account || [];
+            const accountsGrid = document.getElementById('accountsGrid');
+            
+            if (accounts.length === 0) {
+                accountsGrid.innerHTML = '<p class="text-gray-600 col-span-3">No accounts found</p>';
+                return;
+            }
+            
+            // Display first 6 accounts
+            const accountCards = accounts.slice(0, 6).map(account => `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500">${account.AccountType || 'Account'}</p>
+                    <p class="font-semibold text-gray-900">${account.Name}</p>
+                    <p class="text-2xl font-bold text-green-600 mt-2">
+                        $${(account.CurrentBalance || 0).toLocaleString()}
+                    </p>
+                </div>
+            `).join('');
+            
+            accountsGrid.innerHTML = accountCards;
+        };
+
+        const disconnect = () => {
+            if (confirm('Are you sure you want to disconnect from QuickBooks?')) {
+                localStorage.removeItem('qb_tokens');
+                window.location.href = '/quickstart/index.html';
+            }
+        };
+
+        // Load dashboard on page load
+        loadDashboard();
+        
+        // Refresh data every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test QuickBooks OAuth</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 40px; 
+            text-align: center;
+            background: linear-gradient(to br, #eff6ff, #ddd6fe);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1e40af; }
+        .button {
+            background: #2563eb;
+            color: white;
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-block;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .button:hover {
+            background: #1d4ed8;
+        }
+        .info {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0f9ff;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            color: #059669;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QuickBooks OAuth Test</h1>
+        <p>Click the button below to test the QuickBooks OAuth flow</p>
+        
+        <div class="info">
+            <p><strong>OAuth URL Ready:</strong></p>
+            <p class="code" style="word-break: break-all; font-size: 12px;">
+                https://sandbox-quickbooks.api.intuit.com/oauth2/v1/authorize?client_id=ABUFXqPoGWDqAy96lWWU0wkgUGbfUJqImb0TJoZWfhHwFOD7O4&scope=com.intuit.quickbooks.accounting+openid+profile+email+phone+address&redirect_uri=https%3A%2F%2Fardent-dog-632.convex.site%2Fquickbooks%2Fcallback&response_type=code&state=sJG7iFDdBCxX9JWVlytowGKYFPwMLcP0_V-zBwKhNHg&code_challenge=9liKdiUGhR1m2-P_Ypu6PytjZME1Ra2U288KVihUh6k&code_challenge_method=S256
+            </p>
+        </div>
+        
+        <a href="https://sandbox-quickbooks.api.intuit.com/oauth2/v1/authorize?client_id=ABUFXqPoGWDqAy96lWWU0wkgUGbfUJqImb0TJoZWfhHwFOD7O4&scope=com.intuit.quickbooks.accounting+openid+profile+email+phone+address&redirect_uri=https%3A%2F%2Fardent-dog-632.convex.site%2Fquickbooks%2Fcallback&response_type=code&state=sJG7iFDdBCxX9JWVlytowGKYFPwMLcP0_V-zBwKhNHg&code_challenge=9liKdiUGhR1m2-P_Ypu6PytjZME1Ra2U288KVihUh6k&code_challenge_method=S256" 
+           target="_blank" 
+           class="button">
+            Connect QuickBooks (Test)
+        </a>
+        
+        <div class="info" style="margin-top: 30px;">
+            <p><strong>What happens next:</strong></p>
+            <ol style="text-align: left; line-height: 1.8;">
+                <li>QuickBooks login page opens</li>
+                <li>Enter your sandbox credentials</li>
+                <li>Select a test company</li>
+                <li>Authorize the connection</li>
+                <li>You'll be redirected to the callback page</li>
+                <li>Tokens are automatically stored in Convex</li>
+            </ol>
+        </div>
+        
+        <div class="info">
+            <p><strong>Callback URL:</strong></p>
+            <p class="code">https://ardent-dog-632.convex.site/quickbooks/callback</p>
+            <p style="margin-top: 10px;">✅ <span class="success">Callback handler is deployed and ready</span></p>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+        
+        <p>After authorization, access your dashboard at:</p>
+        <a href="http://localhost:3004/dashboard" class="button" style="background: #10b981;">
+            Go to Dashboard
+        </a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinHelm AI - Connecting...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-md mx-auto">
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <div class="text-center">
+                    <!-- Loading spinner -->
+                    <div class="mb-6">
+                        <svg class="animate-spin h-12 w-12 text-green-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    
+                    <h2 id="statusTitle" class="text-2xl font-semibold mb-4">Connecting to QuickBooks...</h2>
+                    <p id="statusMessage" class="text-gray-600">Please wait while we complete the connection.</p>
+                    
+                    <!-- Error message -->
+                    <div id="errorMessage" class="mt-6 hidden">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p class="text-red-800"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const processOAuthCallback = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const realmId = urlParams.get('realmId');
+            const state = urlParams.get('state');
+            const error = urlParams.get('error');
+            
+            const errorDiv = document.getElementById('errorMessage');
+            const statusTitle = document.getElementById('statusTitle');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            if (error) {
+                statusTitle.textContent = 'Connection Failed';
+                statusMessage.classList.add('hidden');
+                errorDiv.querySelector('p').textContent = `Authorization error: ${error}`;
+                errorDiv.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    window.location.href = '/quickstart/index.html';
+                }, 3000);
+                return;
+            }
+            
+            if (!code || !realmId) {
+                statusTitle.textContent = 'Connection Failed';
+                statusMessage.classList.add('hidden');
+                errorDiv.querySelector('p').textContent = 'Missing authorization code or realm ID';
+                errorDiv.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    window.location.href = '/quickstart/index.html';
+                }, 3000);
+                return;
+            }
+            
+            try {
+                // Exchange code for tokens
+                statusMessage.textContent = 'Exchanging authorization code for tokens...';
+                
+                const response = await fetch('/.netlify/functions/exchange-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        realmId: realmId
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to exchange tokens');
+                }
+                
+                const data = await response.json();
+                
+                // Store tokens and company info
+                localStorage.setItem('qb_tokens', JSON.stringify({
+                    access_token: data.access_token,
+                    refresh_token: data.refresh_token,
+                    realmId: data.realmId,
+                    expires_at: data.expires_at
+                }));
+                
+                // Success - redirect to dashboard
+                statusTitle.textContent = 'Connection Successful!';
+                statusMessage.textContent = 'Redirecting to dashboard...';
+                
+                setTimeout(() => {
+                    window.location.href = '/quickstart/dashboard.html';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Token exchange error:', error);
+                statusTitle.textContent = 'Connection Failed';
+                statusMessage.classList.add('hidden');
+                errorDiv.querySelector('p').textContent = error.message || 'Failed to complete connection';
+                errorDiv.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    window.location.href = '/quickstart/index.html';
+                }, 3000);
+            }
+        };
+        
+        // Process OAuth callback immediately
+        processOAuthCallback();
+    </script>
+</body>
+</html>

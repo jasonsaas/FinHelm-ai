@@ -403,7 +403,7 @@ def process_chat_query(
             chat_session_id=chat_session.id,
             message_type="assistant",
             content=ai_result.get("response", "I couldn't process your request."),
-            metadata={
+            message_metadata={
                 "charts": ai_result.get("charts", []),
                 "insights": ai_result.get("insights", {}),
                 "data_sources": ai_result.get("insights", {}).get("data_sources", []),

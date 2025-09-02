@@ -71,7 +71,7 @@ class ChatMessage(Base):
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
     message_type = Column(String(20), nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
-    metadata = Column(JSON)  # Store additional data like charts, QB data sources
+    message_metadata = Column(JSON)  # Store additional data like charts, QB data sources
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     claude_max_tokens: int = 4000
     claude_temperature: float = 0.7
     
+    # xAI Grok Configuration
+    grok_api_key: str = "your_grok_api_key_here"
+    grok_api_base: str = "https://api.x.ai/v1"
+    grok_model: str = "grok-beta"
+    grok_max_tokens: int = 2000
+    grok_temperature: float = 0.7
+    
     # Vector Store Configuration
     vector_db_path: str = "data/vectors"
     embedding_model: str = "all-MiniLM-L6-v2"

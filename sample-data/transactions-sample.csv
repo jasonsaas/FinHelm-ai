@@ -1,0 +1,31 @@
+Transaction ID,Date,Amount,Description,Account Name,Reference Number,Type,Customer,Vendor
+TXN001,2024-01-15,5000.00,Client payment received,Cash and Cash Equivalents,REF001,Payment,ACME Corp,
+TXN002,2024-01-16,-1200.00,Office rent payment,Rent Expense,REF002,Bill,,Property Management LLC
+TXN003,2024-01-17,2500.00,Product sales,Sales Revenue,REF003,Invoice,Tech Solutions Inc,
+TXN004,2024-01-18,-800.00,Office supplies purchase,Office Supplies,REF004,Bill,,Office Depot
+TXN005,2024-01-19,3200.00,Consulting services,Service Revenue,REF005,Invoice,StartupXYZ,
+TXN006,2024-01-20,-2000.00,Equipment purchase,Equipment,REF006,Bill,,TechGear Inc
+TXN007,2024-01-22,-450.00,Utility bill payment,Utilities,REF007,Bill,,Electric Company
+TXN008,2024-01-23,1800.00,Product sales,Sales Revenue,REF008,Invoice,Global Industries,
+TXN009,2024-01-24,-3500.00,Salary payments,Salaries and Wages,REF009,Payroll,,
+TXN010,2024-01-25,4200.00,Large client payment,Cash and Cash Equivalents,REF010,Payment,Enterprise Client,
+TXN011,2024-01-26,-600.00,Marketing campaign,Marketing and Advertising,REF011,Bill,,AdAgency Pro
+TXN012,2024-01-29,-1500.00,Raw materials purchase,Materials,REF012,Bill,,Supplier ABC
+TXN013,2024-01-30,2800.00,Service contract,Service Revenue,REF013,Invoice,MidSize Corp,
+TXN014,2024-02-01,-300.00,Professional services,Professional Services,REF014,Bill,,Legal Firm LLP
+TXN015,2024-02-02,6500.00,Major sale,Sales Revenue,REF015,Invoice,Big Customer Inc,
+TXN016,2024-02-03,-200.00,Interest payment,Interest Expense,REF016,Bill,,First National Bank
+TXN017,2024-02-05,1200.00,Consulting project,Service Revenue,REF017,Invoice,Small Business LLC,
+TXN018,2024-02-06,-900.00,Equipment maintenance,Other Expenses,REF018,Bill,,Maintenance Co
+TXN019,2024-02-07,3800.00,Product sales,Sales Revenue,REF019,Invoice,Retail Chain,
+TXN020,2024-02-08,-750.00,Office supplies,Office Supplies,REF020,Bill,,Staples Inc
+TXN021,2024-02-09,2200.00,Service delivery,Service Revenue,REF021,Invoice,Local Government,
+TXN022,2024-02-10,-1800.00,Inventory purchase,Inventory,REF022,Bill,,Wholesale Supplier
+TXN023,2024-02-12,-400.00,Phone and internet,Utilities,REF023,Bill,,Telecom Provider
+TXN024,2024-02-13,5200.00,Contract milestone,Sales Revenue,REF024,Invoice,Fortune 500 Co,
+TXN025,2024-02-14,-1100.00,Travel expenses,Other Expenses,REF025,Expense,,
+TXN026,2024-02-15,1600.00,Training services,Service Revenue,REF026,Invoice,Education Corp,
+TXN027,2024-02-16,-650.00,Software licenses,Other Expenses,REF027,Bill,,Software Vendor
+TXN028,2024-02-19,4100.00,Product sales,Sales Revenue,REF028,Invoice,Distribution Partner,
+TXN029,2024-02-20,-2200.00,Equipment upgrade,Equipment,REF029,Bill,,Tech Solutions
+TXN030,2024-02-21,2900.00,Consulting revenue,Service Revenue,REF030,Invoice,Nonprofit Org

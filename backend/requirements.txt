@@ -17,7 +17,7 @@ python-dotenv==1.0.0
 
 # HTTP requests and OAuth
 requests==2.31.0
-requests-oauthlib==2.1.0
+requests-oauthlib==2.0.0
 tenacity==8.2.3  # For retry logic
 redis==5.0.1    # For caching
 

@@ -1,0 +1,41 @@
+Account ID,Account Name,Account Type,Classification,Parent Account,Balance,Active,Description
+1000,Assets,Other Current Asset,Asset,,100000.00,true,Total Assets
+1100,Current Assets,Other Current Asset,Asset,1000,75000.00,true,Current Assets
+1110,Cash and Cash Equivalents,Bank,Asset,1100,25000.00,true,Primary cash account
+1120,Petty Cash,Bank,Asset,1100,500.00,true,Small cash fund
+1200,Accounts Receivable,Accounts Receivable,Asset,1100,45000.00,true,Customer receivables
+1210,Allowance for Doubtful Accounts,Other Current Asset,Asset,1200,-2000.00,true,Bad debt allowance
+1300,Inventory,Other Current Asset,Asset,1100,15000.00,true,Product inventory
+1400,Prepaid Expenses,Other Current Asset,Asset,1100,3500.00,true,Prepaid items
+1500,Fixed Assets,Fixed Asset,Asset,1000,25000.00,true,Long-term assets
+1510,Equipment,Fixed Asset,Asset,1500,20000.00,true,Office equipment
+1520,Accumulated Depreciation - Equipment,Fixed Asset,Asset,1510,-5000.00,true,Equipment depreciation
+1600,Intangible Assets,Other Asset,Asset,1000,10000.00,true,Patents and trademarks
+2000,Liabilities,Other Current Liability,Liability,,30000.00,true,Total Liabilities
+2100,Current Liabilities,Other Current Liability,Liability,2000,25000.00,true,Short-term liabilities
+2110,Accounts Payable,Accounts Payable,Liability,2100,18000.00,true,Vendor payables
+2120,Accrued Expenses,Other Current Liability,Liability,2100,4000.00,true,Accrued liabilities
+2130,Sales Tax Payable,Other Current Liability,Liability,2100,2000.00,true,Sales tax owed
+2140,Payroll Liabilities,Other Current Liability,Liability,2100,1000.00,true,Payroll taxes
+2200,Long Term Liabilities,Long Term Liability,Liability,2000,5000.00,true,Long-term debt
+2210,Notes Payable,Long Term Liability,Liability,2200,5000.00,true,Long-term notes
+3000,Equity,Equity,Equity,,70000.00,true,Owner's Equity
+3100,Owner's Equity,Equity,Equity,3000,50000.00,true,Initial investment
+3200,Retained Earnings,Equity,Equity,3000,20000.00,true,Accumulated earnings
+4000,Revenue,Income,Revenue,,150000.00,true,Total Revenue
+4100,Sales Revenue,Income,Revenue,4000,140000.00,true,Product sales
+4200,Service Revenue,Income,Revenue,4000,8000.00,true,Service income
+4300,Other Income,Other Income,Revenue,4000,2000.00,true,Miscellaneous income
+5000,Cost of Goods Sold,Cost of Goods Sold,Expense,,60000.00,true,Direct costs
+5100,Materials,Cost of Goods Sold,Expense,5000,40000.00,true,Raw materials
+5200,Labor,Cost of Goods Sold,Expense,5000,20000.00,true,Direct labor
+6000,Operating Expenses,Expense,Expense,,45000.00,true,Operating costs
+6100,Salaries and Wages,Expense,Expense,6000,25000.00,true,Employee salaries
+6200,Rent Expense,Expense,Expense,6000,12000.00,true,Office rent
+6300,Utilities,Expense,Expense,6000,3600.00,true,Electricity and water
+6400,Office Supplies,Expense,Expense,6000,1800.00,true,Office materials
+6500,Marketing and Advertising,Expense,Expense,6000,2400.00,true,Marketing costs
+6600,Professional Services,Expense,Expense,6000,1200.00,true,Legal and accounting
+7000,Other Expenses,Other Expense,Expense,,5000.00,true,Non-operating expenses
+7100,Interest Expense,Other Expense,Expense,7000,2400.00,true,Loan interest
+7200,Depreciation Expense,Other Expense,Expense,7000,2600.00,true,Asset depreciation
