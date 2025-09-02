@@ -1,40 +1,12 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "backend/main.py",
-      "use": "@vercel/python",
-      "config": {
-        "runtime": "python3.9"
-      }
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/main.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
-  ],
+  "buildCommand": "npx convex codegen && cd frontend && npm run build",
+  "outputDirectory": "frontend/.next",
+  "installCommand": "npm install && cd frontend && npm install",
+  "framework": "nextjs",
   "env": {
-    "QBO_CLIENT_ID": "@qbo_client_id",
-    "QBO_CLIENT_SECRET": "@qbo_client_secret",
-    "GROK_API_KEY": "@grok_api_key",
-    "SECRET_KEY": "@secret_key"
-  },
-  "functions": {
-    "backend/main.py": {
-      "maxDuration": 30
-    }
+    "NEXT_PUBLIC_CONVEX_URL": "https://ardent-dog-632.convex.cloud",
+    "QUICKBOOKS_CLIENT_ID": "@quickbooks_client_id",
+    "QUICKBOOKS_CLIENT_SECRET": "@quickbooks_client_secret",
+    "QUICKBOOKS_ENVIRONMENT": "@quickbooks_environment"
   }
 }

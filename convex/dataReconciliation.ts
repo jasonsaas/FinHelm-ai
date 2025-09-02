@@ -14,6 +14,7 @@
 import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -492,6 +493,35 @@ class ReconciliationEngine {
 /**
  * Parse CSV data into structured records
  */
+function parseCSVDataHelper(args: {
+  csvData: string;
+  delimiter?: string;
+  hasHeader?: boolean;
+}): any[] {
+  const delimiter = args.delimiter || ',';
+  const hasHeader = args.hasHeader !== false;
+  
+  const lines = args.csvData.trim().split('\n');
+  if (lines.length === 0) return [];
+  
+  const headers = hasHeader 
+    ? lines[0].split(delimiter).map(h => h.trim().replace(/"/g, ''))
+    : lines[0].split(delimiter).map((_, i) => `column_${i}`);
+  
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+  
+  return dataLines.map((line, index) => {
+    const values = line.split(delimiter).map(v => v.trim().replace(/"/g, ''));
+    const record: any = { id: `csv_${index}` };
+    
+    headers.forEach((header, i) => {
+      record[header] = values[i] || '';
+    });
+    
+    return record;
+  });
+}
+
 export const parseCSVData = action({
   args: {
     csvData: v.string(),
@@ -499,28 +529,7 @@ export const parseCSVData = action({
     hasHeader: v.optional(v.boolean())
   },
   handler: async (ctx, args) => {
-    const delimiter = args.delimiter || ',';
-    const hasHeader = args.hasHeader !== false;
-    
-    const lines = args.csvData.trim().split('\n');
-    if (lines.length === 0) return [];
-    
-    const headers = hasHeader 
-      ? lines[0].split(delimiter).map(h => h.trim().replace(/"/g, ''))
-      : lines[0].split(delimiter).map((_, i) => `column_${i}`);
-    
-    const dataLines = hasHeader ? lines.slice(1) : lines;
-    
-    return dataLines.map((line, index) => {
-      const values = line.split(delimiter).map(v => v.trim().replace(/"/g, ''));
-      const record: any = { id: `csv_${index}` };
-      
-      headers.forEach((header, i) => {
-        record[header] = values[i] || '';
-      });
-      
-      return record;
-    });
+    return parseCSVDataHelper(args);
   }
 });
 
@@ -544,14 +553,14 @@ export const reconcileChartOfAccounts = action({
     
     try {
       // Parse CSV data
-      const csvRecords = await (parseCSVData as any)(ctx, {
+      const csvRecords = parseCSVDataHelper({
         csvData: args.csvData,
         delimiter: args.options?.delimiter,
         hasHeader: args.options?.hasHeader
       });
       
       // Get existing accounts from database
-      const existingAccounts = await (ctx.runQuery as any)("dataReconciliation:getAccountsByCompany", {
+      const existingAccounts = await ctx.runQuery(api.dataReconciliation.getAccountsByCompany, {
         companyId: args.companyId
       });
       
@@ -605,14 +614,14 @@ export const reconcileTransactions = action({
     
     try {
       // Parse CSV data
-      const csvRecords = await (parseCSVData as any)(ctx, {
+      const csvRecords = parseCSVDataHelper({
         csvData: args.csvData,
         delimiter: args.options?.delimiter,
         hasHeader: args.options?.hasHeader
       });
       
       // Get existing transactions from database
-      const existingTransactions = await (ctx.runQuery as any)("dataReconciliation:getTransactionsByCompany", {
+      const existingTransactions = await ctx.runQuery(api.dataReconciliation.getTransactionsByCompany, {
         companyId: args.companyId
       });
       

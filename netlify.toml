@@ -1,6 +1,14 @@
 [build]
-  publish = "quickstart"
-  command = "echo 'No build needed'"
+  base = ""
+  command = "npm install && npx convex codegen && cd frontend && npm ci && npm run build"
+  publish = "frontend/.next"
+
+[build.environment]
+  NEXT_PUBLIC_CONVEX_URL = "https://ardent-dog-632.convex.cloud"
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [functions]
   directory = "netlify/functions"
@@ -11,12 +19,7 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-[[redirects]]
-  from = "/"
-  to = "/index.html"
-  status = 200
-
 [dev]
   port = 8888
-  publish = "quickstart"
+  publish = "frontend/.next"
   functions = "netlify/functions"
