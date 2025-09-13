@@ -4,21 +4,67 @@ import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import type { AgentResponse } from '../components/chatbot-ui';
 
+/**
+ * Configuration properties for the useChat hook
+ */
 export interface UseChatProps {
+  /** Organization ID for chat context */
   organizationId?: Id<"organizations">;
+  /** User ID for chat context */
   userId?: Id<"users">;
+  /** Session ID for grouping messages */
   sessionId?: string;
+  /** AI agent ID for handling conversations */
   agentId?: Id<"agents">;
 }
 
+/**
+ * Chat message structure used throughout the application
+ */
 export interface ChatMessage {
+  /** Unique message identifier */
   _id: Id<"chatMessages">;
+  /** Message sender type */
   type: 'user' | 'assistant';
+  /** Message content */
   content: string;
+  /** Message creation timestamp */
   createdAt: number;
+  /** AI agent response data */
   response?: AgentResponse;
 }
 
+/**
+ * Chat management hook for handling real-time conversations with AI agents
+ * 
+ * This hook provides comprehensive chat functionality including:
+ * - Real-time message sending and receiving
+ * - AI agent integration with automatic fallback to default agent
+ * - Session management and message history
+ * - Error handling and loading states
+ * - Chat statistics and analytics
+ * 
+ * @param props - Configuration options for the chat hook
+ * @returns Chat interface with messages, actions, and state
+ * 
+ * @example
+ * ```typescript
+ * const {
+ *   messages,
+ *   sendMessage,
+ *   isLoading,
+ *   error,
+ *   sessionId,
+ *   startNewSession,
+ * } = useChat({
+ *   organizationId: 'org-123',
+ *   userId: 'user-456',
+ * });
+ * 
+ * // Send a message
+ * const response = await sendMessage('What is my account balance?');
+ * ```
+ */
 export function useChat({
   organizationId = "demo-org" as Id<"organizations">,
   userId = "demo-user" as Id<"users">,
@@ -58,6 +104,13 @@ export function useChat({
     response: msg.response as AgentResponse | undefined,
   }));
 
+  /**
+   * Sends a message to the AI agent and returns the response
+   * 
+   * @param content - The message content to send
+   * @returns Promise resolving to the agent's response
+   * @throws Will throw an error if message sending fails
+   */
   const sendMessage = useCallback(async (content: string): Promise<AgentResponse> => {
     setIsLoading(true);
     setError(null);
@@ -102,6 +155,11 @@ export function useChat({
     createDefaultAgent,
   ]);
 
+  /**
+   * Starts a new chat session with a unique session ID
+   * 
+   * @returns The new session ID
+   */
   const startNewSession = useCallback(() => {
     const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setCurrentSessionId(newSessionId);
@@ -109,6 +167,9 @@ export function useChat({
     return newSessionId;
   }, []);
 
+  /**
+   * Clears any current error state
+   */
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -126,7 +187,28 @@ export function useChat({
   };
 }
 
-// Helper hook for managing multiple chat sessions
+/**
+ * Chat sessions management hook for handling multiple conversations
+ * 
+ * This hook provides functionality to:
+ * - List all chat sessions for a user
+ * - Delete chat sessions and their associated messages
+ * - Manage session history and cleanup
+ * 
+ * @param props - Configuration options excluding sessionId and agentId
+ * @returns Session management interface with list and delete operations
+ * 
+ * @example
+ * ```typescript
+ * const { sessions, deleteSession } = useChatSessions({
+ *   organizationId: 'org-123',
+ *   userId: 'user-456',
+ * });
+ * 
+ * // Delete a session
+ * await deleteSession('session-abc');
+ * ```
+ */
 export function useChatSessions({
   organizationId = "demo-org" as Id<"organizations">,
   userId = "demo-user" as Id<"users">,
@@ -140,6 +222,13 @@ export function useChatSessions({
 
   const deleteChatSession = useMutation(api.chatActions.deleteChatSession);
 
+  /**
+   * Deletes a chat session and all its associated messages
+   * 
+   * @param sessionId - The ID of the session to delete
+   * @returns Promise resolving to the deletion result
+   * @throws Will throw an error if session deletion fails
+   */
   const deleteSession = useCallback(async (sessionId: string) => {
     try {
       const result = await deleteChatSession({

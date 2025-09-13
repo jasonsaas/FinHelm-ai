@@ -1,56 +1,158 @@
 /**
  * Grok API Client for FinHelm.ai
- * Handles communication with xAI's Grok API for conversational AI and financial analysis
+ * 
+ * This module provides a comprehensive client for communicating with xAI's Grok API,
+ * specifically tailored for financial analysis and conversational AI use cases.
+ * 
+ * Key features:
+ * - Chat completions with financial context
+ * - Text enhancement for business communications
+ * - Financial data analysis with structured insights
+ * - Error handling and retry logic
+ * - Health monitoring and diagnostics
+ * 
+ * @example
+ * ```typescript
+ * import { grokClient } from './grok-client';
+ * 
+ * // Chat with the AI
+ * const response = await grokClient.chat({
+ *   messages: [
+ *     { role: 'user', content: 'What is my cash flow trend?' }
+ *   ]
+ * });
+ * 
+ * // Enhance business text
+ * const enhanced = await grokClient.enhanceText({
+ *   text: 'Invoice is overdue',
+ *   enhancement_type: 'email'
+ * });
+ * ```
  */
 
+/**
+ * Message structure for Grok API conversations
+ */
 export interface GrokMessage {
+  /** The role of the message sender */
   role: 'system' | 'user' | 'assistant';
+  /** The message content */
   content: string;
 }
 
+/**
+ * Request configuration for Grok chat completions
+ */
 export interface GrokChatRequest {
+  /** Array of messages in the conversation */
   messages: GrokMessage[];
+  /** Model to use (defaults to 'grok-beta') */
   model?: string;
+  /** Sampling temperature between 0 and 1 (defaults to 0.7) */
   temperature?: number;
+  /** Maximum tokens to generate (defaults to 2000) */
   max_tokens?: number;
+  /** Whether to stream the response (defaults to false) */
   stream?: boolean;
 }
 
+/**
+ * Response structure from Grok chat API
+ */
 export interface GrokChatResponse {
+  /** Unique identifier for the completion */
   id: string;
+  /** Object type (always 'chat.completion') */
   object: string;
+  /** Unix timestamp of creation */
   created: number;
+  /** Model used for generation */
   model: string;
+  /** Array of completion choices */
   choices: Array<{
+    /** Choice index */
     index: number;
+    /** Generated message */
     message: GrokMessage;
+    /** Reason why generation finished */
     finish_reason: string;
   }>;
+  /** Token usage statistics */
   usage: {
+    /** Tokens used in the prompt */
     prompt_tokens: number;
+    /** Tokens generated in completion */
     completion_tokens: number;
+    /** Total tokens used */
     total_tokens: number;
   };
 }
 
+/**
+ * Request configuration for text enhancement
+ */
 export interface GrokTextEnhancementRequest {
+  /** Text to enhance */
   text: string;
+  /** Type of enhancement to perform */
   enhancement_type: 'email' | 'document' | 'summary' | 'analysis';
+  /** Optional context for better enhancement */
   context?: {
+    /** Relevant financial data */
     financial_data?: any;
+    /** User preferences and settings */
     user_preferences?: any;
   };
 }
 
+/**
+ * Grok API Client Class
+ * 
+ * Main client class for interacting with xAI's Grok API. Provides methods for
+ * chat completions, text enhancement, and financial data analysis.
+ * 
+ * @example
+ * ```typescript
+ * const client = new GrokClient('your-api-key');
+ * 
+ * const response = await client.chat({
+ *   messages: [{ role: 'user', content: 'Hello!' }]
+ * });
+ * ```
+ */
 export class GrokClient {
   private apiKey: string;
   private baseUrl: string;
 
+  /**
+   * Create a new Grok API client
+   * 
+   * @param apiKey - xAI API key (optional, can use environment variable)
+   */
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.GROK_API_KEY || '';
     this.baseUrl = 'https://api.x.ai/v1';
   }
 
+  /**
+   * Send a chat completion request to Grok API
+   * 
+   * @param request - Chat completion request configuration
+   * @returns Promise resolving to chat completion response
+   * @throws Error if API call fails or response is invalid
+   * 
+   * @example
+   * ```typescript
+   * const response = await client.chat({
+   *   messages: [
+   *     { role: 'system', content: 'You are a financial advisor.' },
+   *     { role: 'user', content: 'What should I invest in?' }
+   *   ],
+   *   temperature: 0.7,
+   *   max_tokens: 500
+   * });
+   * ```
+   */
   async chat(request: GrokChatRequest): Promise<GrokChatResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
