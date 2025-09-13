@@ -1,0 +1,1785 @@
+openapi: 3.0.3
+info:
+  title: FinHelm AI API
+  description: |
+    Comprehensive API specification for FinHelm AI - the intelligent financial co-pilot for CFOs.
+    
+    This API provides access to:
+    - Real-time cash flow forecasting (13-week predictions)
+    - AI-powered financial insights and anomaly detection
+    - QuickBooks integration and data synchronization
+    - DSO/DPO optimization recommendations
+    - Advanced financial analytics and reporting
+    
+    ## Authentication
+    All endpoints require Bearer token authentication using JWT tokens.
+    
+    ## Rate Limiting
+    - Standard plan: 1000 requests per hour
+    - Professional plan: 5000 requests per hour
+    - Enterprise plan: 25000 requests per hour
+    
+    ## Webhooks
+    FinHelm AI supports webhooks for real-time event notifications.
+    Configure webhook endpoints to receive updates for cash flow alerts, 
+    anomaly detection, and sync completion events.
+    
+  version: 2.1.0
+  contact:
+    name: FinHelm AI Support
+    email: support@finhelm.ai
+    url: https://finhelm.ai/support
+  license:
+    name: Commercial License
+    url: https://finhelm.ai/license
+  termsOfService: https://finhelm.ai/terms
+
+servers:
+  - url: https://api.finhelm.ai/v2
+    description: Production API
+  - url: https://staging-api.finhelm.ai/v2
+    description: Staging API
+  - url: https://sandbox-api.finhelm.ai/v2
+    description: Sandbox API for testing
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Organizations
+    description: Organization and user management
+  - name: Integrations
+    description: ERP system integrations (QuickBooks, Sage Intacct)
+  - name: Accounts
+    description: Chart of accounts and account hierarchy management
+  - name: Transactions
+    description: Financial transaction data and analysis
+  - name: Cash Flow
+    description: Cash flow forecasting and analysis
+  - name: Metrics
+    description: DSO, DPO, and financial performance metrics
+  - name: AI Insights
+    description: AI-powered insights and anomaly detection
+  - name: Reports
+    description: Financial reporting and data export
+  - name: Alerts
+    description: Alert configuration and notification management
+  - name: Webhooks
+    description: Webhook configuration and event handling
+
+paths:
+  # Authentication Endpoints
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and return JWT token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "cfo@company.com"
+                password:
+                  type: string
+                  format: password
+                  example: "securePassword123"
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh JWT token
+      description: Refresh expired JWT token using refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Organization Management
+  /organizations:
+    get:
+      tags:
+        - Organizations
+      summary: List user organizations
+      description: Get all organizations accessible by the current user
+      operationId: getOrganizations
+      responses:
+        '200':
+          description: Organizations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+
+  /organizations/{organizationId}:
+    get:
+      tags:
+        - Organizations
+      summary: Get organization details
+      description: Get detailed information about a specific organization
+      operationId: getOrganization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      responses:
+        '200':
+          description: Organization details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '404':
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # QuickBooks Integration
+  /integrations/quickbooks/auth/url:
+    post:
+      tags:
+        - Integrations
+      summary: Generate QuickBooks authorization URL
+      description: Create OAuth authorization URL for QuickBooks connection
+      operationId: generateQuickBooksAuthUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organizationId:
+                  type: string
+                  example: "org_12345"
+                redirectUri:
+                  type: string
+                  format: uri
+                  example: "https://app.finhelm.ai/auth/quickbooks/callback"
+                state:
+                  type: string
+                  example: "csrf_token_12345"
+              required:
+                - organizationId
+                - redirectUri
+                - state
+      responses:
+        '200':
+          description: Authorization URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuickBooksAuthUrl'
+
+  /integrations/quickbooks/auth/callback:
+    post:
+      tags:
+        - Integrations
+      summary: Handle QuickBooks OAuth callback
+      description: Process OAuth callback and exchange code for tokens
+      operationId: handleQuickBooksCallback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "Q01txLNJE6fR8aEMz2UaDAV8XrKCrNBa6YSj9R7E5vPQzpMpGg"
+                state:
+                  type: string
+                  example: "csrf_token_12345"
+                realmId:
+                  type: string
+                  example: "4620816365291273400"
+              required:
+                - code
+                - state
+                - realmId
+      responses:
+        '200':
+          description: QuickBooks connected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuickBooksConnection'
+        '400':
+          description: Invalid callback parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /integrations/quickbooks/sync:
+    post:
+      tags:
+        - Integrations
+      summary: Sync QuickBooks data
+      description: Trigger data synchronization from QuickBooks
+      operationId: syncQuickBooksData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '202':
+          description: Sync job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncJob'
+
+  /integrations/quickbooks/sync/{syncJobId}/status:
+    get:
+      tags:
+        - Integrations
+      summary: Get sync status
+      description: Check the status of a QuickBooks sync job
+      operationId: getSyncStatus
+      parameters:
+        - name: syncJobId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "sync_12345"
+      responses:
+        '200':
+          description: Sync status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncJob'
+
+  # Chart of Accounts
+  /organizations/{organizationId}/accounts:
+    get:
+      tags:
+        - Accounts
+      summary: Get chart of accounts
+      description: Retrieve hierarchical chart of accounts
+      operationId: getChartOfAccounts
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: includeInactive
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include inactive accounts
+        - name: maxDepth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+          description: Maximum hierarchy depth
+      responses:
+        '200':
+          description: Chart of accounts retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+
+  /organizations/{organizationId}/accounts/search:
+    get:
+      tags:
+        - Accounts
+      summary: Search accounts
+      description: Search accounts by name or code
+      operationId: searchAccounts
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "cash"
+        - name: types
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/AccountType'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+
+  # Transactions
+  /organizations/{organizationId}/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get transactions
+      description: Retrieve financial transactions with filtering options
+      operationId: getTransactions
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: accountId
+          in: query
+          schema:
+            type: string
+          example: "acc_12345"
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2024-01-01"
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2024-01-31"
+        - name: transactionTypes
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionType'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionStatus'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Transactions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionList'
+
+  # Cash Flow Forecasting
+  /organizations/{organizationId}/cash-flow/forecast:
+    get:
+      tags:
+        - Cash Flow
+      summary: Get 13-week cash flow forecast
+      description: Retrieve AI-powered 13-week cash flow predictions
+      operationId: getCashFlowForecast
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: includeScenarios
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Include optimistic/pessimistic scenarios
+        - name: confidenceLevel
+          in: query
+          schema:
+            type: number
+            minimum: 0.5
+            maximum: 0.99
+            default: 0.8
+          description: Minimum confidence level for predictions
+      responses:
+        '200':
+          description: Cash flow forecast retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFlowForecast'
+
+  /organizations/{organizationId}/cash-flow/position:
+    get:
+      tags:
+        - Cash Flow
+      summary: Get current cash position
+      description: Get current cash position across all accounts
+      operationId: getCurrentCashPosition
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      responses:
+        '200':
+          description: Cash position retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashPosition'
+
+  # Financial Metrics
+  /organizations/{organizationId}/metrics/dso:
+    get:
+      tags:
+        - Metrics
+      summary: Get DSO metrics
+      description: Retrieve Days Sales Outstanding analysis
+      operationId: getDSOMetrics
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [current_month, last_month, current_quarter, last_quarter]
+            default: current_month
+        - name: includeHistorical
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: DSO metrics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DSOMetrics'
+
+  /organizations/{organizationId}/metrics/dpo:
+    get:
+      tags:
+        - Metrics
+      summary: Get DPO metrics
+      description: Retrieve Days Payable Outstanding analysis
+      operationId: getDPOMetrics
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [current_month, last_month, current_quarter, last_quarter]
+            default: current_month
+      responses:
+        '200':
+          description: DPO metrics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DPOMetrics'
+
+  # AI Insights
+  /organizations/{organizationId}/insights:
+    get:
+      tags:
+        - AI Insights
+      summary: Get AI insights
+      description: Retrieve latest AI-generated insights and recommendations
+      operationId: getAIInsights
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: categories
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/InsightCategory'
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/InsightPriority'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: AI insights retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AIInsight'
+
+  /organizations/{organizationId}/insights/anomalies:
+    get:
+      tags:
+        - AI Insights
+      summary: Get anomaly detection results
+      description: Retrieve detected financial anomalies
+      operationId: getAnomalies
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: severity
+          in: query
+          schema:
+            $ref: '#/components/schemas/AnomalySeverity'
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Anomalies retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Anomaly'
+
+  # Reports
+  /organizations/{organizationId}/reports/executive-dashboard:
+    get:
+      tags:
+        - Reports
+      summary: Generate executive dashboard
+      description: Generate comprehensive executive financial dashboard
+      operationId: generateExecutiveDashboard
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, pdf, excel]
+            default: json
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [current_month, last_month, current_quarter, ytd]
+            default: current_month
+      responses:
+        '200':
+          description: Dashboard report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutiveDashboard'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  # Alerts & Notifications
+  /organizations/{organizationId}/alerts:
+    get:
+      tags:
+        - Alerts
+      summary: Get alert configurations
+      description: Retrieve current alert configurations
+      operationId: getAlertConfigurations
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      responses:
+        '200':
+          description: Alert configurations retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertConfiguration'
+    
+    post:
+      tags:
+        - Alerts
+      summary: Create alert configuration
+      description: Create new alert configuration
+      operationId: createAlertConfiguration
+      parameters:
+        - $ref: '#/components/parameters/OrganizationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRequest'
+      responses:
+        '201':
+          description: Alert configuration created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertConfiguration'
+
+  # Webhooks
+  /webhooks/quickbooks:
+    post:
+      tags:
+        - Webhooks
+      summary: QuickBooks webhook endpoint
+      description: Receive webhook notifications from QuickBooks
+      operationId: handleQuickBooksWebhook
+      security: []  # Webhooks use signature verification instead of Bearer auth
+      parameters:
+        - name: intuit-signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature for payload verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuickBooksWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed successfully
+        '400':
+          description: Invalid webhook payload
+        '401':
+          description: Invalid signature
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    OrganizationId:
+      name: organizationId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "org_12345"
+      description: Unique organization identifier
+
+  schemas:
+    # Authentication Schemas
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expiresIn:
+          type: integer
+          example: 3600
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+        - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "user_12345"
+        email:
+          type: string
+          format: email
+          example: "cfo@company.com"
+        name:
+          type: string
+          example: "John Smith"
+        role:
+          type: string
+          enum: [admin, user, viewer]
+          example: "admin"
+        organizations:
+          type: array
+          items:
+            type: string
+          example: ["org_12345", "org_67890"]
+      required:
+        - id
+        - email
+        - name
+        - role
+
+    # Organization Schema
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "org_12345"
+        name:
+          type: string
+          example: "Acme Corporation"
+        slug:
+          type: string
+          example: "acme-corp"
+        erpType:
+          type: string
+          enum: [quickbooks, sage_intacct, netsuite, xero]
+          example: "quickbooks"
+        vertical:
+          type: string
+          enum: [franchise, retail, family_office, healthcare, manufacturing, professional_services, non_profit, construction, hospitality, general]
+          example: "manufacturing"
+        subscriptionTier:
+          type: string
+          enum: [free, basic, premium, enterprise]
+          example: "premium"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - id
+        - name
+        - erpType
+        - subscriptionTier
+        - isActive
+
+    # QuickBooks Integration Schemas
+    QuickBooksAuthUrl:
+      type: object
+      properties:
+        authorizationUrl:
+          type: string
+          format: uri
+          example: "https://appcenter.intuit.com/connect/oauth2?client_id=..."
+        state:
+          type: string
+          example: "csrf_token_12345"
+        expiresAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T01:00:00Z"
+      required:
+        - authorizationUrl
+        - state
+        - expiresAt
+
+    QuickBooksConnection:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          example: "qb_conn_67890"
+        tokens:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+            refreshToken:
+              type: string
+              example: "L01QaDwuOz6A3fBb..."
+            expiresAt:
+              type: string
+              format: date-time
+              example: "2024-01-01T01:00:00Z"
+            realmId:
+              type: string
+              example: "4620816365291273400"
+            tokenType:
+              type: string
+              example: "Bearer"
+          required:
+            - accessToken
+            - refreshToken
+            - expiresAt
+            - realmId
+        companyInfo:
+          type: object
+          properties:
+            companyName:
+              type: string
+              example: "Sandbox Company_US_1"
+            country:
+              type: string
+              example: "US"
+            fiscalYearStartMonth:
+              type: string
+              example: "January"
+      required:
+        - connectionId
+        - tokens
+
+    # Sync Schemas
+    SyncRequest:
+      type: object
+      properties:
+        connectionId:
+          type: string
+          example: "qb_conn_67890"
+        dataType:
+          type: string
+          enum: [accounts, transactions, full]
+          example: "full"
+        dateRange:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date
+              example: "2024-01-01"
+            endDate:
+              type: string
+              format: date
+              example: "2024-01-31"
+        options:
+          type: object
+          properties:
+            includeInactive:
+              type: boolean
+              default: true
+            fuzzyMatchThreshold:
+              type: number
+              minimum: 0.5
+              maximum: 1.0
+              default: 0.85
+            autoResolveConflicts:
+              type: boolean
+              default: false
+      required:
+        - connectionId
+        - dataType
+
+    SyncJob:
+      type: object
+      properties:
+        syncJobId:
+          type: string
+          example: "sync_12345"
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+          example: "running"
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 65
+        results:
+          type: object
+          properties:
+            processed:
+              type: integer
+              example: 815
+            inserted:
+              type: integer
+              example: 123
+            updated:
+              type: integer
+              example: 692
+            skipped:
+              type: integer
+              example: 0
+            errors:
+              type: array
+              items:
+                type: string
+              example: []
+        estimatedCompletion:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:30:00Z"
+        currentStep:
+          type: string
+          example: "Processing transactions"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - syncJobId
+        - status
+        - progress
+
+    # Account Schemas
+    AccountType:
+      type: string
+      enum:
+        - asset
+        - liability
+        - equity
+        - revenue
+        - expense
+        - other_current_asset
+        - other_current_liability
+        - accounts_payable
+        - accounts_receivable
+        - bank
+        - cost_of_goods_sold
+        - fixed_asset
+        - income
+        - long_term_liability
+
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "acc_12345"
+        code:
+          type: string
+          example: "1000"
+        name:
+          type: string
+          example: "Cash - Operating"
+        fullName:
+          type: string
+          example: "Current Assets:Cash - Operating"
+        type:
+          $ref: '#/components/schemas/AccountType'
+        category:
+          type: string
+          example: "Current Asset"
+        subType:
+          type: string
+          example: "Cash and Cash Equivalents"
+        level:
+          type: integer
+          minimum: 0
+          example: 2
+        path:
+          type: array
+          items:
+            type: string
+          example: ["Current Assets", "Cash - Operating"]
+        isActive:
+          type: boolean
+          example: true
+        balance:
+          type: number
+          example: 25000.00
+        currency:
+          type: string
+          example: "USD"
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        lastSyncAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - id
+        - code
+        - name
+        - type
+        - level
+        - isActive
+
+    # Transaction Schemas
+    TransactionType:
+      type: string
+      enum:
+        - journal_entry
+        - invoice
+        - bill
+        - payment
+        - deposit
+        - transfer
+        - adjustment
+
+    TransactionStatus:
+      type: string
+      enum:
+        - draft
+        - pending
+        - posted
+        - void
+        - reconciled
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "txn_12345"
+        externalId:
+          type: string
+          example: "QB_INV_001"
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        accountId:
+          type: string
+          example: "acc_12345"
+        referenceNumber:
+          type: string
+          example: "INV-001"
+        description:
+          type: string
+          example: "Consulting services for Q1"
+        amount:
+          type: number
+          example: 2500.00
+        debitAmount:
+          type: number
+          example: 2500.00
+        creditAmount:
+          type: number
+          example: 0.00
+        currency:
+          type: string
+          example: "USD"
+        transactionDate:
+          type: string
+          format: date
+          example: "2024-01-15"
+        dueDate:
+          type: string
+          format: date
+          example: "2024-02-14"
+        customerId:
+          type: string
+          example: "cust_12345"
+        vendorId:
+          type: string
+          example: "vend_12345"
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["consulting", "q1"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:00:00Z"
+      required:
+        - id
+        - type
+        - accountId
+        - amount
+        - transactionDate
+        - status
+
+    TransactionList:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 1250
+            limit:
+              type: integer
+              example: 100
+            offset:
+              type: integer
+              example: 0
+            hasMore:
+              type: boolean
+              example: true
+      required:
+        - transactions
+        - pagination
+
+    # Cash Flow Schemas
+    CashFlowForecast:
+      type: object
+      properties:
+        weeks:
+          type: array
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+                minimum: 1
+                maximum: 13
+                example: 1
+              startDate:
+                type: string
+                format: date
+                example: "2024-01-01"
+              endDate:
+                type: string
+                format: date
+                example: "2024-01-07"
+              projectedInflows:
+                type: number
+                example: 45000.00
+              projectedOutflows:
+                type: number
+                example: 32000.00
+              netCashFlow:
+                type: number
+                example: 13000.00
+              runningBalance:
+                type: number
+                example: 138000.00
+              confidence:
+                type: number
+                minimum: 0.0
+                maximum: 1.0
+                example: 0.95
+              scenarios:
+                type: object
+                properties:
+                  optimistic:
+                    type: number
+                    example: 150000.00
+                  pessimistic:
+                    type: number
+                    example: 125000.00
+                  mostLikely:
+                    type: number
+                    example: 138000.00
+        metadata:
+          type: object
+          properties:
+            generatedAt:
+              type: string
+              format: date-time
+              example: "2024-01-01T00:00:00Z"
+            basedOnMonthsOfData:
+              type: integer
+              example: 18
+            seasonalityDetected:
+              type: boolean
+              example: true
+            averageAccuracy:
+              type: number
+              example: 0.89
+      required:
+        - weeks
+        - metadata
+
+    CashPosition:
+      type: object
+      properties:
+        current:
+          type: number
+          example: 125000.00
+        change:
+          type: number
+          example: 15000.00
+        changePercent:
+          type: number
+          example: 13.6
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              accountId:
+                type: string
+                example: "acc_12345"
+              accountName:
+                type: string
+                example: "Cash - Operating"
+              balance:
+                type: number
+                example: 50000.00
+              currency:
+                type: string
+                example: "USD"
+        lastUpdated:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - current
+        - change
+        - changePercent
+        - accounts
+        - lastUpdated
+
+    # Metrics Schemas
+    DSOMetrics:
+      type: object
+      properties:
+        current:
+          type: object
+          properties:
+            dso:
+              type: number
+              example: 35.2
+            target:
+              type: number
+              example: 30.0
+            variance:
+              type: number
+              example: 5.2
+            trend:
+              type: string
+              enum: [improving, worsening, stable]
+              example: "improving"
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              bucket:
+                type: string
+                example: "0-30"
+              amount:
+                type: number
+                example: 125000.00
+              percentage:
+                type: number
+                example: 62.5
+              customerCount:
+                type: integer
+                example: 15
+        topDelinquents:
+          type: array
+          items:
+            type: object
+            properties:
+              customerId:
+                type: string
+                example: "cust_12345"
+              customerName:
+                type: string
+                example: "Acme Corp"
+              amount:
+                type: number
+                example: 25000.00
+              daysOverdue:
+                type: integer
+                example: 67
+        historical:
+          type: array
+          items:
+            type: object
+            properties:
+              period:
+                type: string
+                example: "2024-01"
+              dso:
+                type: number
+                example: 32.1
+              salesVolume:
+                type: number
+                example: 250000.00
+      required:
+        - current
+        - breakdown
+
+    DPOMetrics:
+      type: object
+      properties:
+        current:
+          type: object
+          properties:
+            dpo:
+              type: number
+              example: 28.5
+            target:
+              type: number
+              example: 45.0
+            variance:
+              type: number
+              example: -16.5
+            trend:
+              type: string
+              enum: [improving, worsening, stable]
+              example: "stable"
+        payablesAging:
+          type: array
+          items:
+            type: object
+            properties:
+              bucket:
+                type: string
+                example: "0-30"
+              amount:
+                type: number
+                example: 85000.00
+              percentage:
+                type: number
+                example: 70.8
+              vendorCount:
+                type: integer
+                example: 12
+        cashFlowImpact:
+          type: object
+          properties:
+            earlyPaymentDiscount:
+              type: number
+              example: 2500.00
+            lateFees:
+              type: number
+              example: 150.00
+            optimizedCashFlow:
+              type: number
+              example: 45000.00
+      required:
+        - current
+        - payablesAging
+        - cashFlowImpact
+
+    # AI Insights Schemas
+    InsightCategory:
+      type: string
+      enum:
+        - cash_flow
+        - collections
+        - payments
+        - anomaly
+        - performance
+        - risk
+        - opportunity
+
+    InsightPriority:
+      type: string
+      enum:
+        - critical
+        - high
+        - medium
+        - low
+
+    AnomalySeverity:
+      type: string
+      enum:
+        - critical
+        - high
+        - medium
+        - low
+
+    AIInsight:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "insight_12345"
+        category:
+          $ref: '#/components/schemas/InsightCategory'
+        priority:
+          $ref: '#/components/schemas/InsightPriority'
+        title:
+          type: string
+          example: "Cash flow projected to dip below threshold"
+        message:
+          type: string
+          example: "Cash flow projected to fall below $100K in week 8. Consider accelerating collections."
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.78
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+                example: "Accelerate collection efforts on overdue accounts"
+              impact:
+                type: number
+                example: 45000.00
+              effort:
+                type: string
+                enum: [low, medium, high]
+                example: "medium"
+        data:
+          type: object
+          additionalProperties: true
+          example:
+            affectedAmount: 150000.00
+            timeframe: "8 weeks"
+            accounts: ["acc_12345", "acc_67890"]
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - id
+        - category
+        - priority
+        - title
+        - message
+        - confidence
+        - createdAt
+
+    Anomaly:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "anomaly_12345"
+        type:
+          type: string
+          enum: [transaction_amount, payment_timing, vendor_pattern, customer_pattern, account_balance]
+          example: "transaction_amount"
+        severity:
+          $ref: '#/components/schemas/AnomalySeverity'
+        description:
+          type: string
+          example: "Unusually large expense transaction detected"
+        transaction:
+          $ref: '#/components/schemas/Transaction'
+        expectedRange:
+          type: object
+          properties:
+            min:
+              type: number
+              example: 500.00
+            max:
+              type: number
+              example: 2500.00
+        actualValue:
+          type: number
+          example: 15000.00
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.92
+        detectedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - id
+        - type
+        - severity
+        - description
+        - actualValue
+        - confidence
+        - detectedAt
+
+    # Reports Schema
+    ExecutiveDashboard:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            cashPosition:
+              $ref: '#/components/schemas/CashPosition'
+            dsoMetrics:
+              $ref: '#/components/schemas/DSOMetrics'
+            dpoMetrics:
+              $ref: '#/components/schemas/DPOMetrics'
+        forecast:
+          type: object
+          properties:
+            thirteenWeek:
+              $ref: '#/components/schemas/CashFlowForecast'
+        insights:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIInsight'
+          maxItems: 5
+        kpis:
+          type: object
+          properties:
+            revenueGrowth:
+              type: number
+              example: 0.15
+            cashBurnRate:
+              type: number
+              example: 45000.00
+            collectionEfficiency:
+              type: number
+              example: 0.89
+            paymentOptimization:
+              type: number
+              example: 0.76
+        generatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - summary
+        - forecast
+        - insights
+        - kpis
+        - generatedAt
+
+    # Alerts Schema
+    AlertConfiguration:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "alert_12345"
+        name:
+          type: string
+          example: "Cash Flow Warning"
+        type:
+          type: string
+          enum: [cash_position, dso_threshold, dpo_threshold, anomaly, forecast_warning]
+          example: "cash_position"
+        conditions:
+          type: object
+          properties:
+            threshold:
+              type: number
+              example: 100000.00
+            comparison:
+              type: string
+              enum: [less_than, greater_than, equals]
+              example: "less_than"
+            timeframe:
+              type: string
+              example: "current"
+        notifications:
+          type: object
+          properties:
+            email:
+              type: boolean
+              example: true
+            sms:
+              type: boolean
+              example: true
+            webhook:
+              type: string
+              format: uri
+              example: "https://company.com/webhook/finhelm"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+      required:
+        - id
+        - name
+        - type
+        - conditions
+        - notifications
+        - isActive
+
+    CreateAlertRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Cash Flow Warning"
+        type:
+          type: string
+          enum: [cash_position, dso_threshold, dpo_threshold, anomaly, forecast_warning]
+          example: "cash_position"
+        conditions:
+          type: object
+          properties:
+            threshold:
+              type: number
+              example: 100000.00
+            comparison:
+              type: string
+              enum: [less_than, greater_than, equals]
+              example: "less_than"
+            timeframe:
+              type: string
+              example: "current"
+        notifications:
+          type: object
+          properties:
+            email:
+              type: boolean
+              example: true
+            sms:
+              type: boolean
+              example: false
+            webhook:
+              type: string
+              format: uri
+              example: "https://company.com/webhook/finhelm"
+      required:
+        - name
+        - type
+        - conditions
+        - notifications
+
+    # Webhook Schemas
+    QuickBooksWebhookPayload:
+      type: object
+      properties:
+        eventNotifications:
+          type: array
+          items:
+            type: object
+            properties:
+              realmId:
+                type: string
+                example: "4620816365291273400"
+              name:
+                type: string
+                enum: [Invoice, Bill, Payment, Account, Customer, Vendor, Item, JournalEntry]
+                example: "Invoice"
+              id:
+                type: string
+                example: "145"
+              operation:
+                type: string
+                enum: [Create, Update, Delete, Void]
+                example: "Create"
+              lastUpdated:
+                type: string
+                format: date-time
+                example: "2024-01-01T12:00:00.000Z"
+            required:
+              - realmId
+              - name
+              - id
+              - operation
+              - lastUpdated
+      required:
+        - eventNotifications
+
+    # Error Schema
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid request parameters"
+        details:
+          type: object
+          additionalProperties: true
+          example:
+            field: "email"
+            issue: "Invalid email format"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+        requestId:
+          type: string
+          example: "req_12345"
+      required:
+        - error
+        - message
+        - timestamp
+
+# Webhook Event Examples
+webhooks:
+  quickbooksTransactionCreated:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuickBooksWebhookPayload'
+            examples:
+              invoiceCreated:
+                summary: Invoice created in QuickBooks
+                value:
+                  eventNotifications:
+                    - realmId: "4620816365291273400"
+                      name: "Invoice"
+                      id: "145"
+                      operation: "Create"
+                      lastUpdated: "2024-01-01T12:00:00.000Z"
+              billUpdated:
+                summary: Bill updated in QuickBooks
+                value:
+                  eventNotifications:
+                    - realmId: "4620816365291273400"
+                      name: "Bill"
+                      id: "78"
+                      operation: "Update"
+                      lastUpdated: "2024-01-01T12:05:00.000Z"
+      responses:
+        '200':
+          description: Webhook processed successfully
