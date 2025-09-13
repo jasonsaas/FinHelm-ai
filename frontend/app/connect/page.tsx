@@ -64,6 +64,7 @@ export default function ConnectPage() {
 
           <div className="space-y-4">
             <button
+              data-testid="connect-quickbooks"
               onClick={connectQuickBooks}
               disabled={isLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"

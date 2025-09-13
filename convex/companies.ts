@@ -83,6 +83,18 @@ export const listActiveCompanies = query({
   },
 });
 
+// Get all companies (simplified for demo)
+export const getCompanies = query({
+  args: {},
+  handler: async (ctx) => {
+    // For demo purposes, return all companies
+    // In production, you'd filter by authenticated user
+    return await ctx.db
+      .query("companies")
+      .collect();
+  },
+});
+
 // Update company ERP tokens
 export const updateCompanyTokens = mutation({
   args: {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { 
   Card, 
   CardContent, 
@@ -18,7 +18,8 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, Download } from 'lucide-react'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { RefreshCw, Download, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react'
 import { 
   LineChart, 
   Line, 
@@ -31,73 +32,96 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts'
+import { 
+  useDashboardMetrics, 
+  useCashFlow, 
+  useInvoices, 
+  useBills,
+  useSyncStatus 
+} from '@/app/hooks/useQuickBooks'
 
-// Mock data generators
-const getMockCashFlowData = () => ({
+// Loading component
+const DashboardSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {[...Array(4)].map((_, i) => (
+        <Card key={i}>
+          <CardHeader className="pb-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  </div>
+)
+
+// Demo data generators (for demo mode)
+const getDemoData = () => ({
   currentCash: 150000,
   forecast: Array.from({ length: 13 }, (_, i) => ({
-    week: `Week ${i + 1}`,
-    projected: 150000 + Math.random() * 50000 - 25000,
-    actual: i < 4 ? 150000 + Math.random() * 30000 - 15000 : null
+    weekNumber: i + 1,
+    weekStart: new Date(Date.now() + i * 7 * 24 * 60 * 60 * 1000).toISOString(),
+    expectedReceivables: Math.random() * 20000 + 10000,
+    expectedPayables: Math.random() * 15000 + 5000,
+    projectedBalance: 150000 + Math.random() * 50000 - 25000,
   })),
-  metrics: {
-    dso: 42,
-    dpo: 38,
-    workingCapital: 125000
-  }
-})
-
-const getMockInvoicesData = () => ({
   invoices: Array.from({ length: 5 }, (_, i) => ({
-    id: `INV-${1000 + i}`,
-    customer: `Customer ${i + 1}`,
-    amount: Math.round(Math.random() * 10000 + 1000),
-    dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    invoiceId: `INV-${1000 + i}`,
+    customerName: `Customer ${i + 1}`,
+    totalAmt: Math.round(Math.random() * 10000 + 1000),
+    balance: Math.round(Math.random() * 5000),
+    dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
     status: Math.random() > 0.5 ? 'Pending' : 'Paid'
   })),
-  totalPending: 45000,
-  totalOverdue: 12000
-})
-
-const getMockBillsData = () => ({
   bills: Array.from({ length: 5 }, (_, i) => ({
-    id: `BILL-${2000 + i}`,
-    vendor: `Vendor ${i + 1}`,
-    amount: Math.round(Math.random() * 5000 + 500),
-    dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    billId: `BILL-${2000 + i}`,
+    vendorName: `Vendor ${i + 1}`,
+    totalAmt: Math.round(Math.random() * 5000 + 500),
+    balance: Math.round(Math.random() * 2500),
+    dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
     status: Math.random() > 0.5 ? 'Pending' : 'Paid'
-  })),
-  totalPending: 28000,
-  totalOverdue: 5000
+  }))
 })
 
 export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isDemoMode, setIsDemoMode] = useState(true) // Default to demo mode
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-  const [cashFlowData, setCashFlowData] = useState<any>(null)
-  const [invoicesData, setInvoicesData] = useState<any>(null)
-  const [billsData, setBillsData] = useState<any>(null)
-
-  // Fetch mock data
-  const fetchDashboardData = async () => {
-    setIsLoading(true)
-    try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setCashFlowData(getMockCashFlowData())
-      setInvoicesData(getMockInvoicesData())
-      setBillsData(getMockBillsData())
-      setLastRefresh(new Date())
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setIsLoading(false)
+  
+  // Use demo mode for now (will integrate with Clerk later)
+  const userId = "demo-user"
+  
+  // Real data hooks (will use demo data when not connected to QuickBooks)
+  const dashboardMetrics = isDemoMode ? null : useDashboardMetrics(userId)
+  const cashFlow = isDemoMode ? null : useCashFlow(userId)
+  const invoices = isDemoMode ? null : useInvoices(userId, { limit: 5 })
+  const bills = isDemoMode ? null : useBills(userId)
+  const syncStatus = useSyncStatus(userId)
+  
+  // Demo data
+  const demoData = isDemoMode ? getDemoData() : null
+  
+  // Determine loading state
+  const isLoading = !isDemoMode && (
+    dashboardMetrics?.isLoading || 
+    cashFlow?.isLoading || 
+    invoices?.isLoading || 
+    bills?.isLoading
+  )
+  
+  // Handle refresh
+  const handleRefresh = async () => {
+    if (!isDemoMode) {
+      await syncStatus.sync()
     }
+    setLastRefresh(new Date())
   }
-
+  
   useEffect(() => {
-    fetchDashboardData()
+    setLastRefresh(new Date())
   }, [])
 
   const formatCurrency = (amount: number) => {
@@ -107,8 +131,28 @@ export default function DashboardPage() {
     }).format(amount)
   }
 
+  // Get data based on mode
+  const currentCash = isDemoMode ? (demoData?.currentCash || 0) : (dashboardMetrics?.metrics?.currentCash || 0)
+  const receivables = isDemoMode 
+    ? (demoData?.invoices.reduce((sum, inv) => sum + inv.balance, 0) || 0) 
+    : (dashboardMetrics?.metrics?.receivables || 0)
+  const payables = isDemoMode
+    ? (demoData?.bills.reduce((sum, bill) => sum + bill.balance, 0) || 0)
+    : (dashboardMetrics?.metrics?.payables || 0)
+  const forecastData = isDemoMode ? demoData?.forecast : cashFlow?.forecast
+  const invoicesList = isDemoMode ? demoData?.invoices : invoices?.invoices
+  const billsList = isDemoMode ? demoData?.bills : bills?.bills
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <DashboardSkeleton />
+      </div>
+    )
+  }
+
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6" data-testid="dashboard-loaded">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -118,8 +162,16 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={fetchDashboardData} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button 
+            variant="outline"
+            onClick={() => setIsDemoMode(!isDemoMode)}
+            title={isDemoMode ? "Switch to Live Data" : "Switch to Demo Mode"}
+          >
+            {isDemoMode ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
+            <span className="ml-2">{isDemoMode ? "Demo Mode" : "Live Mode"}</span>
+          </Button>
+          <Button onClick={handleRefresh} disabled={syncStatus.isSyncing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button variant="outline">
@@ -129,6 +181,16 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Sync Error Alert */}
+      {syncStatus.error && (
+        <Alert className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {syncStatus.error}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -136,8 +198,8 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">Cash Position</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {cashFlowData ? formatCurrency(cashFlowData.currentCash) : '--'}
+            <div className="text-2xl font-bold cash-position">
+              {formatCurrency(currentCash)}
             </div>
           </CardContent>
         </Card>
@@ -147,7 +209,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {invoicesData ? formatCurrency(invoicesData.totalPending) : '--'}
+              {formatCurrency(receivables)}
             </div>
           </CardContent>
         </Card>
@@ -157,7 +219,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {billsData ? formatCurrency(billsData.totalPending) : '--'}
+              {formatCurrency(payables)}
             </div>
           </CardContent>
         </Card>
@@ -167,29 +229,30 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {cashFlowData ? `${cashFlowData.metrics.dso} days` : '--'}
+              {dashboardMetrics?.metrics?.forecast ? '42 days' : '--'}
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Cash Flow Chart */}
-      {cashFlowData && (
+      {forecastData && forecastData.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>13-Week Cash Flow Forecast</CardTitle>
-            <CardDescription>Projected vs Actual Cash Position</CardDescription>
+            <CardDescription>Projected Cash Position</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={cashFlowData.forecast}>
+              <LineChart data={forecastData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="week" />
+                <XAxis dataKey="weekNumber" />
                 <YAxis />
                 <Tooltip formatter={(value) => formatCurrency(value as number)} />
                 <Legend />
-                <Line type="monotone" dataKey="projected" stroke="#8884d8" />
-                <Line type="monotone" dataKey="actual" stroke="#82ca9d" />
+                <Line type="monotone" dataKey="projectedBalance" stroke="#8884d8" name="Projected Balance" />
+                <Line type="monotone" dataKey="expectedReceivables" stroke="#82ca9d" name="Expected Receivables" />
+                <Line type="monotone" dataKey="expectedPayables" stroke="#ef4444" name="Expected Payables" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -215,22 +278,28 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoicesData?.invoices.map((invoice: any) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell>{invoice.id}</TableCell>
-                    <TableCell>{invoice.customer}</TableCell>
-                    <TableCell>{formatCurrency(invoice.amount)}</TableCell>
+                {invoicesList?.slice(0, 5).map((invoice: any) => (
+                  <TableRow key={invoice.invoiceId}>
+                    <TableCell>{invoice.invoiceId || invoice.invoiceNumber || '--'}</TableCell>
+                    <TableCell>{invoice.customerName || '--'}</TableCell>
+                    <TableCell>{formatCurrency(invoice.totalAmt || 0)}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded text-xs ${
-                        invoice.status === 'Pending' 
+                        invoice.balance > 0 
                           ? 'bg-yellow-100 text-yellow-800' 
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {invoice.status}
+                        {invoice.balance > 0 ? 'Pending' : 'Paid'}
                       </span>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) || (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-gray-500">
+                      No invoices to display
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -253,22 +322,28 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {billsData?.bills.map((bill: any) => (
-                  <TableRow key={bill.id}>
-                    <TableCell>{bill.id}</TableCell>
-                    <TableCell>{bill.vendor}</TableCell>
-                    <TableCell>{formatCurrency(bill.amount)}</TableCell>
+                {billsList?.slice(0, 5).map((bill: any) => (
+                  <TableRow key={bill.billId}>
+                    <TableCell>{bill.billId || '--'}</TableCell>
+                    <TableCell>{bill.vendorName || '--'}</TableCell>
+                    <TableCell>{formatCurrency(bill.totalAmt || 0)}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded text-xs ${
-                        bill.status === 'Pending' 
+                        bill.balance > 0 
                           ? 'bg-yellow-100 text-yellow-800' 
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {bill.status}
+                        {bill.balance > 0 ? 'Pending' : 'Paid'}
                       </span>
                     </TableCell>
                   </TableRow>
-                ))}
+                )) || (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-gray-500">
+                      No bills to display
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>

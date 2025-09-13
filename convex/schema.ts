@@ -36,7 +36,7 @@ export default defineSchema({
 
   // 2. Companies/Organizations - ERP system connections
   companies: defineTable({
-    userId: v.id("users"),
+    userId: v.string(),
     name: v.string(),
     erpSystem: v.union(v.literal("quickbooks"), v.literal("sage_intacct"), v.literal("grok")),
     erpCompanyId: v.string(),
@@ -495,4 +495,197 @@ export default defineSchema({
   })
     .index("by_state", ["state"])
     .index("by_expires", ["expiresAt"]),
+
+  // 13. Invoices - QuickBooks integration
+  invoices: defineTable({
+    userId: v.string(),
+    invoiceId: v.string(),
+    invoiceNumber: v.optional(v.string()),
+    customerId: v.string(),
+    customerName: v.string(),
+    txnDate: v.string(),
+    dueDate: v.string(),
+    totalAmt: v.number(),
+    balance: v.number(),
+    status: v.string(),
+    lineItems: v.optional(v.array(v.object({
+      description: v.optional(v.string()),
+      amount: v.number(),
+      quantity: v.optional(v.number()),
+      unitPrice: v.optional(v.number()),
+    }))),
+    createdAt: v.number(),
+    lastSyncedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_invoice_id", ["invoiceId"])
+    .index("by_customer", ["customerId"])
+    .index("by_status", ["status"]),
+
+  // 14. Bills - QuickBooks integration
+  bills: defineTable({
+    userId: v.string(),
+    billId: v.string(),
+    vendorId: v.string(),
+    vendorName: v.string(),
+    txnDate: v.string(),
+    dueDate: v.string(),
+    totalAmt: v.number(),
+    balance: v.number(),
+    status: v.string(),
+    createdAt: v.number(),
+    lastSyncedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_bill_id", ["billId"])
+    .index("by_vendor", ["vendorId"])
+    .index("by_status", ["status"]),
+
+  // 15. AI Agents - 25 specialized financial agents
+  aiAgents: defineTable({
+    agentId: v.string(),
+    name: v.string(),
+    category: v.union(
+      v.literal("financial_analysis"),
+      v.literal("forecasting"),
+      v.literal("compliance"),
+      v.literal("optimization"),
+      v.literal("reporting")
+    ),
+    description: v.string(),
+    capabilities: v.array(v.string()),
+    promptTemplate: v.string(),
+    contextRequirements: v.array(v.string()), // What data this agent needs
+    outputFormat: v.union(v.literal("text"), v.literal("chart"), v.literal("table"), v.literal("mixed")),
+    model: v.string(), // gpt-4, claude-3, etc
+    maxTokens: v.number(),
+    temperature: v.number(),
+    isActive: v.boolean(),
+    icon: v.string(),
+    color: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_agent_id", ["agentId"])
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"]),
+
+  // 16. Agent Executions - Track all agent interactions
+  agentExecutions: defineTable({
+    companyId: v.id("companies"),
+    userId: v.id("users"),
+    agentId: v.string(),
+    sessionId: v.optional(v.string()),
+    query: v.string(),
+    context: v.object({
+      timeRange: v.optional(v.object({
+        startDate: v.number(),
+        endDate: v.number(),
+      })),
+      accountIds: v.optional(v.array(v.id("accounts"))),
+      metrics: v.optional(v.any()),
+      transactions: v.optional(v.array(v.any())),
+    }),
+    response: v.object({
+      content: v.string(),
+      charts: v.optional(v.array(v.any())),
+      tables: v.optional(v.array(v.any())),
+      insights: v.optional(v.array(v.string())),
+      recommendations: v.optional(v.array(v.string())),
+      confidence: v.number(),
+    }),
+    model: v.string(),
+    promptUsed: v.string(),
+    tokenUsage: v.object({
+      promptTokens: v.number(),
+      completionTokens: v.number(),
+      totalTokens: v.number(),
+      cost: v.number(),
+    }),
+    executionTime: v.number(), // milliseconds
+    status: v.union(v.literal("success"), v.literal("error"), v.literal("cached")),
+    error: v.optional(v.string()),
+    feedback: v.optional(v.object({
+      rating: v.number(),
+      comment: v.optional(v.string()),
+      helpful: v.boolean(),
+    })),
+    cacheKey: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_user", ["userId"])
+    .index("by_agent", ["agentId"])
+    .index("by_session", ["sessionId"])
+    .index("by_status", ["status"])
+    .index("by_created_at", ["createdAt"])
+    .index("by_cache_key", ["cacheKey"]),
+
+  // 17. Agent Sessions - Track conversation threads
+  agentSessions: defineTable({
+    sessionId: v.string(),
+    companyId: v.id("companies"),
+    userId: v.id("users"),
+    title: v.string(),
+    summary: v.optional(v.string()),
+    messageCount: v.number(),
+    totalTokens: v.number(),
+    totalCost: v.number(),
+    startedAt: v.number(),
+    lastActivityAt: v.number(),
+    status: v.union(v.literal("active"), v.literal("archived"), v.literal("deleted")),
+  })
+    .index("by_session_id", ["sessionId"])
+    .index("by_company", ["companyId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_last_activity", ["lastActivityAt"]),
+
+  // 18. Payments - QuickBooks/n8n integration
+  payments: defineTable({
+    companyId: v.optional(v.id("companies")),
+    erpPaymentId: v.string(),
+    paymentDate: v.number(),
+    customerId: v.string(),
+    customerName: v.optional(v.string()),
+    amount: v.number(),
+    currency: v.optional(v.string()),
+    paymentMethod: v.optional(v.string()),
+    referenceNumber: v.optional(v.string()),
+    status: v.optional(v.string()),
+    depositAccountId: v.optional(v.string()),
+    // Related invoice data
+    invoiceId: v.optional(v.string()),
+    invoiceNumber: v.optional(v.string()),
+    appliedAmount: v.optional(v.number()),
+    unappliedAmount: v.optional(v.number()),
+    // Metadata
+    memo: v.optional(v.string()),
+    syncSource: v.optional(v.string()),
+    metadata: v.optional(v.object({
+      transactionId: v.optional(v.string()),
+      checkNumber: v.optional(v.string()),
+      bankReference: v.optional(v.string()),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_payment_id", ["erpPaymentId"])
+    .index("by_customer", ["customerId"])
+    .index("by_payment_date", ["paymentDate"])
+    .index("by_status", ["status"])
+    .index("by_invoice", ["invoiceId"]),
+
+  // 19. Budget Settings - Budget targets and configuration
+  budgetSettings: defineTable({
+    companyId: v.id("companies"),
+    fiscalYear: v.number(),
+    period: v.string(), // monthly, quarterly, yearly
+    targets: v.optional(v.any()), // Account-specific budget targets
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_fiscal_year", ["fiscalYear"]),
 });
