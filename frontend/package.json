@@ -14,7 +14,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:form": "playwright test custom-agent-builder-form.spec.ts",
-    "test:e2e:grok": "playwright test custom-agent-builder-grok.spec.ts", 
+    "test:e2e:grok": "playwright test custom-agent-builder-grok.spec.ts",
     "test:e2e:deployment": "playwright test custom-agent-builder-deployment.spec.ts",
     "test:e2e:performance": "playwright test custom-agent-builder-performance.spec.ts",
     "test:e2e:edge-cases": "playwright test custom-agent-builder-edge-cases.spec.ts",
@@ -27,13 +27,14 @@
     "@tanstack/react-query": "^5.0.0",
     "axios": "^1.6.0",
     "clsx": "^2.0.0",
+    "convex": "^1.26.1",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
     "recharts": "^2.8.0",
-    "tailwind-merge": "^2.0.0",
-    "convex": "^1.26.1"
+    "stripe": "^18.5.0",
+    "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
