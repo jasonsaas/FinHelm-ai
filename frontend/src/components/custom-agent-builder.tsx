@@ -666,8 +666,6 @@ const CustomAgentBuilder = React.memo<{}>(function CustomAgentBuilder() {
   );
 }
 
-});
-
 export default CustomAgentBuilder;
 
 // Placeholder components for lazy loading - these would be separate files in a real application

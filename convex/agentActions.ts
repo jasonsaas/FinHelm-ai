@@ -1221,19 +1221,6 @@ async function callGrokAPI(params: {
     ragContext: { historicalContext: [], queryKeywords: [], contextStrength: 'low' }
   });
 }
-        },
-        {
-          name: analysisType === 'cash_flow' ? 'Net Cash Flow' : 'Net Position',
-          value: revenue - expenses,
-          change: Math.random() * 15 - 7.5,
-          trend: (revenue - expenses) > 0 ? 'up' : 'down',
-        },
-      ],
-    },
-    patterns: contextualPatterns,
-    actions: contextualActions,
-  };
-}
 
 function generateContextualSummary(query: string, analysisType: string, data: any): string {
   const { revenue, expenses, totalTransactions } = data;
