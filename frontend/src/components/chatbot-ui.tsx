@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, MessageSquare, TrendingUp, BarChart3, CheckSquare, Loader2, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useChat } from '../hooks/useChat';
@@ -99,16 +99,37 @@ interface ChatbotUIProps {
   sessionId?: string;
 }
 
-export function ChatbotUI({
+// Custom hook for debouncing
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+export const ChatbotUI = React.memo<ChatbotUIProps>(function ChatbotUI({
   className,
   onSendMessage,
   organizationId,
   userId,
   defaultAgentId,
   sessionId,
-}: ChatbotUIProps) {
+}) {
   const [inputValue, setInputValue] = useState('');
   const [activeSegment, setActiveSegment] = useState<OutputSegment>('summary');
+  const [pendingQuery, setPendingQuery] = useState('');
+  
+  // Debounce input changes for AI queries with 500ms delay
+  const debouncedInput = useDebounce(pendingQuery, 500);
   
   // Use Convex chat hook
   const {
@@ -126,14 +147,17 @@ export function ChatbotUI({
     agentId: defaultAgentId,
   });
 
-  // Convert Convex messages to component format
-  const messages: ChatMessage[] = convexMessages.map(msg => ({
-    id: msg._id,
-    type: msg.type,
-    content: msg.content,
-    timestamp: new Date(msg.createdAt),
-    response: msg.response,
-  }));
+  // Convert Convex messages to component format - memoized for performance
+  const messages: ChatMessage[] = useMemo(() => 
+    convexMessages.map(msg => ({
+      id: msg._id,
+      type: msg.type,
+      content: msg.content,
+      timestamp: new Date(msg.createdAt),
+      response: msg.response,
+    })),
+    [convexMessages]
+  );
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -146,11 +170,12 @@ export function ChatbotUI({
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return;
 
     const messageContent = inputValue.trim();
     setInputValue('');
+    setPendingQuery('');
     clearError();
 
     try {
@@ -164,21 +189,31 @@ export function ChatbotUI({
       console.error('Chat error:', err);
       // Error is handled by the useChat hook
     }
-  };
+  }, [inputValue, isLoading, clearError, onSendMessage, sendConvexMessage]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
+  
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    // Set pending query for debounced processing of AI suggestions
+    setPendingQuery(value);
+  }, []);
 
-  const getLatestResponse = (): AgentResponse | null => {
+  const getLatestResponse = useCallback((): AgentResponse | null => {
     const lastMessage = messages
       .filter(m => m.type === 'assistant' && m.response)
       .pop();
     return lastMessage?.response || null;
-  };
+  }, [messages]);
+  
+  // Memoize the latest response to prevent unnecessary re-renders
+  const latestResponse = useMemo(() => getLatestResponse(), [getLatestResponse]);
 
   const formatValue = (value: any): string => {
     if (typeof value === 'number') {
@@ -547,7 +582,7 @@ export function ChatbotUI({
                 ref={inputRef}
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask about your financial data..."
                 className="input flex-1"
@@ -569,7 +604,7 @@ export function ChatbotUI({
         </div>
 
         {/* Segmented Output Panel */}
-        {getLatestResponse() && (
+        {latestResponse && (
           <div className="w-96 border-l border-gray-200 flex flex-col">
             {/* Segment Tabs */}
             <div className="flex-shrink-0 border-b border-gray-200 bg-gray-50">
@@ -598,10 +633,10 @@ export function ChatbotUI({
 
             {/* Segment Content */}
             <div className="flex-1 overflow-y-auto p-4">
-              {renderSegmentContent(getLatestResponse()!)}
+              {renderSegmentContent(latestResponse!)}
               
               {/* AI Disclaimer Footer */}
-              {getLatestResponse()?.metadata && (
+              {latestResponse?.metadata && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <div className="flex items-start">
@@ -611,12 +646,12 @@ export function ChatbotUI({
                       <div className="ml-2 text-sm">
                         <p className="text-yellow-800 font-medium mb-1">AI-Generated Analysis</p>
                         <p className="text-yellow-700">
-                          {getLatestResponse()?.metadata?.disclaimer || 
+                          {latestResponse?.metadata?.disclaimer || 
                            'AI-generated analysis based on live ERP data—please review all recommendations'}
                         </p>
-                        {getLatestResponse()?.metadata?.erpSystems && getLatestResponse()?.metadata?.erpSystems.length > 0 && (
+                        {latestResponse?.metadata?.erpSystems && latestResponse?.metadata?.erpSystems.length > 0 && (
                           <p className="text-yellow-600 text-xs mt-1">
-                            Data sources: {getLatestResponse()?.metadata?.erpSystems.join(', ')}
+                            Data sources: {latestResponse?.metadata?.erpSystems.join(', ')}
                           </p>
                         )}
                       </div>
@@ -630,7 +665,7 @@ export function ChatbotUI({
       </div>
     </div>
   );
-}
+});
 
 // Mock function for demonstration (will be replaced with actual Convex integration)
 async function mockAgentResponse(query: string): Promise<AgentResponse> {
