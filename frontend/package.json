@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npx convex deploy --cmd 'npm run build:next'",
+    "build:next": "next build",
+    "build:local": "npx convex dev --once && next build",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",
