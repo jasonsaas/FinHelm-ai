@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "env": {
+    "NEXT_PUBLIC_CONVEX_URL": "@convex_url",
+    "CONVEX_DEPLOY_KEY": "@convex_deploy_key"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_CONVEX_URL": "@convex_url",
+      "NODE_ENV": "production"
+    }
+  }
+}

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 
 interface Message {
   id: string;
@@ -30,6 +32,11 @@ How can I assist you with your finances today?`,
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(false);
+  const cashFlowData = useQuery(
+    api.aiAgents.cashFlowForecast,
+    shouldFetch ? {} : "skip"
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -54,18 +61,16 @@ How can I assist you with your finances today?`,
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    handleAgentQuery();
+  };
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: generateMockResponse(input),
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, aiResponse]);
-      setIsLoading(false);
-    }, 1500);
+  const handleAgentQuery = () => {
+    setShouldFetch(true);
+    if (cashFlowData) {
+      console.log("Real data received:", cashFlowData);
+      // Update UI with real data as needed
+    }
+    setIsLoading(false);
   };
 
   return (
